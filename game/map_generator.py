@@ -2,6 +2,9 @@
 # MountainQuest
 # Felix Liu
 
+# VERSION HISTORY
+# 5.23.2023 - Began work on room connection system, prime path finder
+
 from utilities.math_utility import *
 from game.map import *
 
@@ -33,6 +36,9 @@ class MapGenerator(object):
         self.grid_cell_dimensions = Vector(int(dimensions.x/cols), int(dimensions.y/rows))
         self.room_grid = np.zeros((cols, rows), dtype=Room)
 
+        self.room_cols = cols
+        self.room_rows = rows
+
         for x in range(cols):
             for y in range(rows):
                 point = Vector(x, y)
@@ -47,6 +53,11 @@ class MapGenerator(object):
                 self.apply_room(self.room_grid[x, y])
 
         points = self.determine_prime_path(Vector(0, 0))
+        for p in points:
+            self.apply_room(self.room_grid[p.x, p.y])
+
+    def is_room_in_range(self, room_point):
+        return (room_point.x >= 0 and room_point.x < self.room_cols) and (room_point.y >= 0 and room_point.y < self.room_rows)
 
     def get_rogue_room_pivot(self, point=Vector()):
         x = point.x * self.grid_cell_dimensions.x + 1
@@ -57,19 +68,22 @@ class MapGenerator(object):
         y = random.randint(4, self.grid_cell_dimensions.y - 1)
         return Vector(x, y)
     
+    # RECURSIVE ALGORITHM FOR DETERMINING A VIABLE PRIME PATH
     def determine_prime_path(self, point=Vector(), points=[]):
-        points.append(point)
+        points.append(point) # Add the current point to the list path
 
-        option = random.randint(0,2)
-        match option:
-            case 0: # RIGHT
-                return self.determine_prime_path(point + Vector(1, 0), points)
-            case 1: # UP
-                return self.determine_prime_path(point - Vector(0, 1), points)
-            case 2: # DOWN
-                return self.determine_prime_path(point + Vector(0, 1), points)
-        return points
+        options = [Vector(0,-1), Vector(0,1), Vector(1,0)] # Inital options - no left as that would go back
 
+        while len(options) > 0: # If not all options are used up
+            option = options.pop(random.randint(0, len(options) - 1)) # Remove a random option
+            new_point = point + option
+
+            # Room must be in range and room must not have already been accessed
+            if self.is_room_in_range(new_point):
+                if not new_point in points:
+                    return self.determine_prime_path(new_point, points) # Move
+        return points # No more possible moves, return final path
+        
     # GENERATE ROGUE-STYLE ROOMS CONNECTED BY CORRIDORS
     def generate_dungeon_rooms(self, dimensions, num_of_rooms=10):
         self.create_new_map(dimensions)

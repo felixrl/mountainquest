@@ -18,6 +18,7 @@ from game.map import *
 from game.map_generator import *
 
 MAP_DIMENSIONS = Vector(80, 24)
+# MAP_DIMENSIONS = Vector(10, 10)
 
 # Body component for physics processing
 class Body(Component):
@@ -45,7 +46,7 @@ class Player(GameObject):
 
         self.body = Body(self.transform)
         self.add_component(self.body)
-        renderer = Renderer(self.transform, "@", GREEN)
+        renderer = Renderer(self.transform, "@", WHITE)
         self.add_component(renderer)
 class Enemy(GameObject):
     def __init__(self, position):
@@ -53,7 +54,7 @@ class Enemy(GameObject):
         
         self.body = Body(self.transform)
         self.add_component(self.body)
-        renderer = Renderer(self.transform, "&", RED)
+        renderer = Renderer(self.transform, "*", RED)
         self.add_component(renderer)
         timer = Timer(0.2)
         timer.subscribe(self)
@@ -82,8 +83,11 @@ class Enemy(GameObject):
 # MAP GENERATION
 map_generator = MapGenerator(MAP_DIMENSIONS)
 # map_generator.generate_dungeon_rooms(MAP_DIMENSIONS, 12)
-map_generator.generate_rogue(MAP_DIMENSIONS)
+# map_generator.generate_rogue_level(MAP_DIMENSIONS)
+map_generator.create_dumb_map(MAP_DIMENSIONS)
 map = map_generator.get_map()
+map_generator.generate_distance_map()
+distance_map = map_generator.get_distance_map()
 
 # GAME OBJECT MANAGEMENT
 game_objects = []
@@ -92,8 +96,18 @@ def add_game_object(game_object):
 def remove_game_object(game_object):
     game_objects.remove(game_object)
 
-player = Player(Vector(10, 10))
+highest_point = (0, 0) # Point vector and distance value
+player = Player(Vector(0, 0))
+for x in range(map.dimensions.x):
+    for y in range(map.dimensions.y):
+        d = distance_map[x, y]
+        if d == 0:
+            player.transform.set_position(Vector(x, y))
+        if highest_point[1] < d:
+            highest_point = (Vector(x, y), d)
 add_game_object(player)
+
+finish_point = highest_point[0]
 
 for i in range(random.randint(3, 10)):
     new_enemy = Enemy(Vector(random.randint(0, map.width - 1), random.randint(0, map.height - 1)))
@@ -110,8 +124,9 @@ class Water(GameObject):
 
 for x in range(20,40):
     for y in range(10, 20):
-        new_water = Water(Vector(x, y))
-        add_game_object(new_water)
+        pass
+        # new_water = Water(Vector(x, y))
+        # add_game_object(new_water)
 
 def handle_input(e, screen):
     global player
@@ -185,6 +200,9 @@ def game(screen):
                             case 1:
                                 c = " "
                         screen.print_at(c, x, y, colour=WHITE)
+                        if Vector(x, y) == finish_point:
+                            screen.print_at("$", x, y, colour=YELLOW)
+                        # screen.print_at(distance_map[x, y], x, y, colour=WHITE)
                 render(screen)
             case 1:
                 screen.print_at("GAME OVER", 16, 8)

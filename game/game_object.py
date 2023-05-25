@@ -43,4 +43,8 @@ class Component(object):
 # Transform class - the positional component
 class Transform(Component):
     def __init__(self, position=Vector(0,0)):
+        self.set_position(position)
+    def set_position(self, position=Vector(0,0)):
         self.position = position
+    def get_position(self):
+        return self.position

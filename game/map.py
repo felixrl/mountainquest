@@ -23,7 +23,7 @@ class Map(object):
         self.width = dimensions.x
         self.height = dimensions.y
         self.dimensions = dimensions
-        self.map = np.zeros(dimensions.get_tuple())
+        self.map = np.zeros(dimensions.get_tuple(), dtype=int)
     def is_in_range(self, position):
         return (position.x >= 0 and position.x < self.width) and (position.y >= 0 and position.y < self.height)
     

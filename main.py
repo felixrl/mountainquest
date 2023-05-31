@@ -2,6 +2,9 @@
 # MountainQuest
 # Felix Liu
 
+# VERSION HISTORY
+# 5.31.2023 - added input handling for arrow keys
+
 from asciimatics.screen import Screen
 
 import time
@@ -17,202 +20,131 @@ from game.timer import *
 from game.map import *
 from game.map_generator import *
 
+from game.game import *
+from game.game_renderer import *
+
+from game.actor import *
+from game.action import *
+
+import game.input.keyboard as Keyboard
+
 MAP_DIMENSIONS = Vector(80, 24)
-# MAP_DIMENSIONS = Vector(10, 10)
-
-# Body component for physics processing
-class Body(Component):
-    def __init__(self, transform=None):
-        super(Body, self).__init__()
-        self.transform = transform
-    def move_to(self, position=Vector(0,0)):
-        if map.is_in_range(position):
-            if map.is_floor(position):
-                self.transform.position = position
-    def move_by(self, direction=Vector(0,0)):
-        new_position = self.transform.position + direction
-        self.move_to(new_position)
-    
-    def start(self):
-        return super().start()
-    def update(self, delta):
-        if not map.is_floor(self.transform.position):
-            pass
-            # print("Dead!")
-
-class Player(GameObject):
-    def __init__(self, position):
-        super(Player, self).__init__(position)
-
-        self.body = Body(self.transform)
-        self.add_component(self.body)
-        renderer = Renderer(self.transform, "@", WHITE)
-        self.add_component(renderer)
-class Enemy(GameObject):
-    def __init__(self, position):
-        super(Enemy, self).__init__(position)
-        
-        self.body = Body(self.transform)
-        self.add_component(self.body)
-        renderer = Renderer(self.transform, "*", RED)
-        self.add_component(renderer)
-        timer = Timer(0.2)
-        timer.subscribe(self)
-        self.add_component(timer)
-
-    def on_timer(self, timer):
-        dir = random.randint(0, 1)
-        amount = random.randint(0, 1)
-        new_direction_vector = Vector()
-        if dir == 0:
-            if amount == 0:
-                new_direction_vector = Vector(1, 0)
-            else:
-                new_direction_vector = Vector(-1, 0)
-        else:
-            if amount == 0:
-                new_direction_vector = Vector(0, 1)
-            else:
-                new_direction_vector = Vector(0, -1)
-        self.body.move_by(new_direction_vector)
-
-
-
-
-
-# MAP GENERATION
-map_generator = MapGenerator(MAP_DIMENSIONS)
-# map_generator.generate_dungeon_rooms(MAP_DIMENSIONS, 12)
-# map_generator.generate_rogue_level(MAP_DIMENSIONS)
-map_generator.create_dumb_map(MAP_DIMENSIONS)
-map = map_generator.get_map()
-map_generator.generate_distance_map()
-distance_map = map_generator.get_distance_map()
-
-# GAME OBJECT MANAGEMENT
-game_objects = []
-def add_game_object(game_object):
-    game_objects.append(game_object)
-def remove_game_object(game_object):
-    game_objects.remove(game_object)
-
-highest_point = (0, 0) # Point vector and distance value
-player = Player(Vector(0, 0))
-for x in range(map.dimensions.x):
-    for y in range(map.dimensions.y):
-        d = distance_map[x, y]
-        if d == 0:
-            player.transform.set_position(Vector(x, y))
-        if highest_point[1] < d:
-            highest_point = (Vector(x, y), d)
-add_game_object(player)
-
-finish_point = highest_point[0]
-
-for i in range(random.randint(3, 10)):
-    new_enemy = Enemy(Vector(random.randint(0, map.width - 1), random.randint(0, map.height - 1)))
-    add_game_object(new_enemy)
-
-# WATER TEST
-
-class Water(GameObject):
-    def __init__(self, position):
-        super(Water, self).__init__(position)
-        
-        renderer = AnimatedRenderer(self.transform, ProceduralAnimation("animations/water.txt"), 12)
-        self.add_component(renderer)
-
-for x in range(20,40):
-    for y in range(10, 20):
-        pass
-        # new_water = Water(Vector(x, y))
-        # add_game_object(new_water)
-
-def handle_input(e, screen):
-    global player
-    if e != None and hasattr(e, "key_code"):
-        k = e.key_code
-        match k:
-            case -204: # up
-                player.body.move_by(Vector(0, -1))
-            case -203: # left
-                player.body.move_by(Vector(-1, 0))
-            case -206: # down
-                player.body.move_by(Vector(0, 1))
-            case -205: # right
-                player.body.move_by(Vector(1, 0))
-
-
-
-
-
-# GAME
-PLAYING = 0
-GAME_OVER = 1
-VICTORY = 2
 
 def start():
-    # print(game_objects)
-    for g in game_objects:
-        g.start()
-def update(delta):
-    for g in game_objects:
-        g.update(delta)
+    pass
+def update():
+    pass
 def render(screen):
-    for g in game_objects:
-        g.render(screen)
+    pass
+
+# INPUT HANDLER
+def handle_input(game, e):
+    if e != None and hasattr(e, "key_code"):
+        match e.key_code:
+            # Movement inputs
+            case Keyboard.KeyCode.UpArrow:
+                game.hero.set_next_action(MoveAction(Vector(0,-1)))
+            case Keyboard.KeyCode.DownArrow:
+                game.hero.set_next_action(MoveAction(Vector(0,1)))
+            case Keyboard.KeyCode.LeftArrow:
+                game.hero.set_next_action(MoveAction(Vector(-1,0)))
+            case Keyboard.KeyCode.RightArrow:
+                game.hero.set_next_action(MoveAction(Vector(1,0)))
+            case Keyboard.KeyCode.Q:
+                return -1
 
 def game(screen):
-    state = PLAYING
-    previous_frame_time = time.time()
-    cur_time = 0
-    
-    start()
+    try:
+        # Map generation
+        map_generator = MapGenerator(MAP_DIMENSIONS)
+        map_generator.create_dumb_map(MAP_DIMENSIONS)
+        map = map_generator.get_map()
 
-    while True:
-        # INPUT HANDLING
-        e = screen.get_event()
-        if e != None and hasattr(e, "key_code"):
-            if e.key_code == 113: # Q to exit
+        # Create game
+        cur_game = Game(map)
+
+        # Create renderer
+        cur_game_renderer = GameRenderer(cur_game)
+
+        # Create actors
+        new_player = Actor(Vector(1, 1), "@")
+        cur_game.add_actor(new_player)  
+        cur_game.set_hero(new_player)
+
+        for x in range(MAP_DIMENSIONS.x):
+            for y in range(MAP_DIMENSIONS.y):
+                if random.randint(0, 100) < 1:
+                    new_enemy = Enemy(Vector(x,y), "e")
+                    cur_game.add_actor(new_enemy)
+
+        start() # STARTING GAME
+
+        while True: # GAME LOOP
+            # INPUT HANDLING
+            e = screen.get_event()
+            res = handle_input(cur_game, e) # Pass input handling
+            if res == -1: # Input wants to quit! Quit the game
                 break
-            if e.key_code == ord(" "):
-                state = PLAYING
-            # screen.print_at(e.key_code, 100, 10)
-        handle_input(e, screen)
 
-        # GAMEPLAY
-        # Delta time
-        delta_time = time.time() - previous_frame_time
-        previous_frame_time = time.time()
-        cur_time += delta_time
+            cur_game.process()
 
-        update(delta_time)
+            # RENDERING
+            cur_game_renderer.render(screen)
+            screen.refresh()    
+    except Exception as e:
+        print("\n> Error: " + str(e))
+        print("> An error occured in MountainQuest. Exiting to the main menu.")
 
-        # RENDERING
-        match state:
-            case 0:
-                for x in range(map.width):
-                    for y in range(map.height):
-                        c = "?"
-                        match map.get_tile(Vector(x, y)):
-                            case 0:
-                                c = "."
-                            case 1:
-                                c = " "
-                        screen.print_at(c, x, y, colour=WHITE)
-                        if Vector(x, y) == finish_point:
-                            screen.print_at("$", x, y, colour=YELLOW)
-                        # screen.print_at(distance_map[x, y], x, y, colour=WHITE)
-                render(screen)
-            case 1:
-                screen.print_at("GAME OVER", 16, 8)
-        screen.print_at("*", 0, 0)
-        screen.print_at("*", map.width, map.height)
-        screen.refresh()
+# MAIN MENU
+main_menu_instructions = """
+1 - play
+2 - level editor
+3 - options
+4 - credits
+5 - quit
+"""
+# The above text has leading and trailing new lines included
 
+def main_menu():
+    # MAIN MENU LOOP
+    while True:
+        print(main_menu_instructions)
+        p_input = input("> ").strip().lower() # Player input, processed and standardized
+        # INT PROCESSING
+        try:
+            i_input = int(p_input) # int value of the player's input
+            match i_input:
+                case 1:
+                    Screen.wrapper(game)
+                    print("\n> Exiting game...")
+                case 2:
+                    print("\nlevel editor")
+                case 3:
+                    print("\noptions")
+                case 4:
+                    print("\ncredits")
+                case 5:
+                    break
+                case _:
+                    raise Exception("Invalid input.")
+        except:
+            # STRING PROCESSING
+            match p_input:
+                case "q":
+                    break
+                case _:
+                    print("\nPlease enter a valid input.")
+
+# GAME PROGRAM
 def main():
-    print("Starting MountainQuest...")
-    Screen.wrapper(game)
-    print("Done!")
+    print("")
+    print("> Starting MountainQuest...") # Start the game
+    print("")
+    print("> MountainQuest")
+    print("> (a turn-based ASCII roguelike)")
+    print("> © 2023 felixrl")
+    main_menu() # Start at main menu
+    print("")
+    print("> Done!") # Game finished
     return 0
 main()

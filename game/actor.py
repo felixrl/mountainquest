@@ -47,3 +47,7 @@ class Actor(object):
         return self.position
     def set_position(self, new_position=Vector(0,0)):
         self.position = new_position
+
+    # Collision handler - called when one character attempts to move into another
+    def collide(self, other):
+        print("Collision!")

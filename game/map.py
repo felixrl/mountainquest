@@ -27,6 +27,17 @@ class Map(object):
     def is_in_range(self, position):
         return (position.x >= 0 and position.x < self.width) and (position.y >= 0 and position.y < self.height)
     
+    # Check if a tile is surrounded on all 4 sides by similar neighbours AND 4 CORNERS
+    def is_contiguous(self, position=Vector(0,0)):
+        contiguous = True
+        directions = [Vector(1,0), Vector(0,1), Vector(-1,0), Vector(0,-1), Vector(1,1), Vector(-1,-1), Vector(1,-1), Vector(-1,1)]
+        for d in directions:
+            new_position = position + d
+            if self.is_in_range(new_position):
+                if self.get_tile(new_position) != self.get_tile(position):
+                    contiguous = False
+        return contiguous
+
     # Getting and setting
     def get_tile(self, position):
         if not self.is_in_range(position):

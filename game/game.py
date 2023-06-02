@@ -21,13 +21,20 @@ class Game(object):
     # For a decoupled game loop with control via the UI, process one actor at a time before returning control
     def process(self):
         if len(self.actors) > 0: # If there are actual actors
-            action = self.actors[self.current_actor_index].get_action() # Get action
+            cur_actor = self.actors[self.current_actor_index]
+            # print(cur_actor)
+            
+            if cur_actor.energy >= 1: # More than 1 or has 1 energy
+                action = cur_actor.get_action() # Get action
 
-            if action == None:
-                return
+                if action == None:
+                    return
 
-            action.perform(self.actors[self.current_actor_index], self) # Perform the action
+                action.perform(cur_actor, self) # Perform the action
+                cur_actor.energy -= 1
+
             self.current_actor_index = (self.current_actor_index + 1) % len(self.actors) # Next actor
+            cur_actor.energy += cur_actor.energy_gain
 
     # ACTORS
     def add_actor(self, a):

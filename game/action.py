@@ -11,6 +11,7 @@ from utilities.math_utility import *
 # ACTION ENCAPSULATES A REQUEST IN AN OBJECT
 # This way, actions can be treated like first-class objects
 # An example of the Command design pattern
+# http://gameprogrammingpatterns.com/command.html
 
 # BASE ABSTRACT ACTION
 class Action(object):

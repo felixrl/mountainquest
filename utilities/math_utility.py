@@ -4,8 +4,14 @@
 
 # VERSION HISTORY
 # 5.23.2023 - Added comments
+# 6.1.2023 - Added interpolation
 
 import math
+
+# INTERPOLATION FUNCTIONS
+# Linear interpolation
+def lerp(start, end, t):
+    return start * (1.0 - t) + end * t # Weighted 100% for start at 0.0 and 100% for end at 1.0
 
 # A 2D vector class for directions, points, and positions
 class Vector(object):
@@ -63,7 +69,18 @@ class Vector(object):
         return Vector(self.x / self.magnitude(), self.y / self.magnitude())
     def negative(self): # Inverts both (x, y) to (-x, -y), multiplication by -1
         return Vector(-self.x, -self.y)
+    def rounded(self): # Returns a vector rounded to the nearest integer points
+        return Vector(round(self.x), round(self.y))
     
+    def distance(self, target): # Returns the distance from self to target
+        return self - target
+    def diagonal_distance(self, target): # Returns the total number of tiles to fill a diagonal line
+        return Vector(max(abs(self.distance(target).x)))
+
     def get_tuple(self): # Returns a tuple of (x, y)
         return (self.x, self.y)
-        
+    
+    def lerp(self, target, t): # Linearly interpolate between this vector and the target vector
+        if type(target) == type(Vector()):
+            return Vector(lerp(self.x, target.x, t), lerp(self.y, target.y, t))
+        raise Exception("Invalid vector linear interpolation")

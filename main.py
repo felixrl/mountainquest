@@ -4,31 +4,29 @@
 
 # VERSION HISTORY
 # 5.31.2023 - added input handling for arrow keys
+# 6.2.2023 - added TIME_BETWEEN_PROCESS, delays turns by a constant value to avoid instantaneous movements
 
 from asciimatics.screen import Screen
+from utilities.math_utility import *
+
+from game.game import *
+from game.game_renderer import *
+from game.map import *
+from game.map_generator import *
+from game.actor import *
+from game.actors.enemy import *
+from game.action import *
+
+import game.input.keyboard as Keyboard
 
 import time
 import random
 import logging
 
-from utilities.math_utility import *
 
-from game.game_object import *
-from game.renderer import *
-from game.timer import *
 
-from game.map import *
-from game.map_generator import *
-
-from game.game import *
-from game.game_renderer import *
-
-from game.actor import *
-from game.action import *
-
-import game.input.keyboard as Keyboard
-
-MAP_DIMENSIONS = Vector(80, 24)
+MAP_DIMENSIONS = Vector(80, 24) # Dimensions of the map
+TIME_BETWEEN_PROCESS = 0.01
 
 def start():
     pass
@@ -53,11 +51,18 @@ def handle_input(game, e):
             case Keyboard.KeyCode.Q:
                 return -1
 
+# GAME SESSION IN ASCII
 def game(screen):
     try:
         # Map generation
         map_generator = MapGenerator(MAP_DIMENSIONS)
         map_generator.create_dumb_map(MAP_DIMENSIONS)
+        map_generator.generate_rogue_level(MAP_DIMENSIONS)
+        #for i in range(2):
+        #    pivot = Vector(random.randint(0, MAP_DIMENSIONS.x - 1), random.randint(0, MAP_DIMENSIONS.y - 1))
+        #    size = Vector(random.randint(1, 32), random.randint(1, 32))
+        #    map_generator.add_wall_block(pivot, size)
+        
         map = map_generator.get_map()
 
         # Create game
@@ -67,26 +72,48 @@ def game(screen):
         cur_game_renderer = GameRenderer(cur_game)
 
         # Create actors
-        new_player = Actor(Vector(1, 1), "@")
+        new_player = Actor(Vector(1, 1), "@", Color.WHITE)
         cur_game.add_actor(new_player)  
         cur_game.set_hero(new_player)
 
-        for x in range(MAP_DIMENSIONS.x):
-            for y in range(MAP_DIMENSIONS.y):
-                if random.randint(0, 100) < 1:
-                    new_enemy = Enemy(Vector(x,y), "e")
-                    cur_game.add_actor(new_enemy)
+        for i in range(10):
+            new_pos = Vector(0,0)
+            while True:
+                new_pos = Vector(random.randint(0, MAP_DIMENSIONS.x - 1), random.randint(0, MAP_DIMENSIONS.y - 1))
+                if cur_game.map.get_tile(new_pos) == TileType.FLOOR:
+                    break
+            new_enemy = Enemy(new_pos, "e", Color.RED, 1, 0.5, cur_game)
+            cur_game.add_actor(new_enemy)
+
+        # for x in range(MAP_DIMENSIONS.x):
+        #    for y in range(MAP_DIMENSIONS.y):
+        #       if random.randint(0, 100) < 1:
+        #            new_enemy = Enemy(Vector(x,y), "e")
+        #            cur_game.add_actor(new_enemy)
 
         start() # STARTING GAME
 
+        previous_frame_time = time.time()
+        cur_time = 0
+        process_timer = 0.0
+
         while True: # GAME LOOP
+            # DELTA TIME
+            delta_time = time.time() - previous_frame_time
+            previous_frame_time = time.time()
+            # Increment timers and trackers
+            cur_time += delta_time
+            process_timer += delta_time 
+
             # INPUT HANDLING
             e = screen.get_event()
             res = handle_input(cur_game, e) # Pass input handling
             if res == -1: # Input wants to quit! Quit the game
                 break
 
-            cur_game.process()
+            while process_timer >= TIME_BETWEEN_PROCESS:
+                process_timer -= TIME_BETWEEN_PROCESS
+                cur_game.process()
 
             # RENDERING
             cur_game_renderer.render(screen)
@@ -105,6 +132,8 @@ main_menu_instructions = """
 """
 # The above text has leading and trailing new lines included
 
+# MAIN MENU USING TYPICAL TERMINAL UI
+# Todo: create an ASCIImatics navigatable menu
 def main_menu():
     # MAIN MENU LOOP
     while True:

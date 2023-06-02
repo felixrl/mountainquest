@@ -5,6 +5,7 @@
 # VERSION HISTORY
 # 5.23.2023 - Began work on room connection system, prime path finder
 # 5.25.2023 - Added demo map generator for full room, recursive function for generating a distance map with flood fill
+# 6.1.2023 - Added function for creating a wall block
 
 from utilities.math_utility import *
 from game.map import *
@@ -59,6 +60,14 @@ class MapGenerator(object):
         self.new_map = Map(dimensions)
     def fill_with_wall(self):
         self.new_map.fill(WALL)
+
+    # Add a block of wall
+    def add_wall_block(self, pivot=Vector(0,0), size=Vector(10,10)):
+        for x in range(size.x):
+            for y in range(size.y):
+                new_pos = pivot + Vector(x, y)
+                if self.new_map.is_in_range(new_pos):
+                    self.new_map.set_tile(new_pos, WALL)
 
     def create_dumb_map(self, dimensions=Vector(32, 32)):
         # Create a new map and fill it with walls

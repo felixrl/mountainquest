@@ -6,13 +6,14 @@
 # 5.31.2023 - added input handling for arrow keys
 # 6.2.2023 - added TIME_BETWEEN_PROCESS, delays turns by a constant value to avoid instantaneous movements
 
-from asciimatics.screen import Screen
+from asciimatics.screen import Screen, ManagedScreen
 from utilities.math_utility import *
 
 from game.game import *
 from game.game_renderer import *
 from game.map import *
 from game.map_generator import *
+from game.map_file_manager import *
 from game.actor import *
 from game.actors.enemy import *
 from game.action import *
@@ -20,6 +21,7 @@ from game.action import *
 import game.input.keyboard as Keyboard
 
 import time
+from datetime import datetime
 import random
 import logging
 
@@ -27,6 +29,8 @@ import logging
 
 MAP_DIMENSIONS = Vector(80, 24) # Dimensions of the map
 TIME_BETWEEN_PROCESS = 0.01
+
+MAP_FILE_MANAGER = MapFileManager()
 
 def start():
     pass
@@ -48,22 +52,32 @@ def handle_input(game, e):
                 game.hero.set_next_action(MoveAction(Vector(-1,0)))
             case Keyboard.KeyCode.RightArrow:
                 game.hero.set_next_action(MoveAction(Vector(1,0)))
+            case Keyboard.KeyCode.S:
+                save_game(game)
             case Keyboard.KeyCode.Q:
                 return -1
 
+def save_game(game):
+    # Timestamping with https://www.freecodecamp.org/news/how-to-get-the-current-time-in-python-with-datetime/
+    cur_datetime = datetime.now()
+    timestamp = cur_datetime.strftime("%Y%m%d%H%M%S")
+
+    MAP_FILE_MANAGER.save_map_to_file("maps/map-{0}.txt".format(timestamp), game.map)
+    
 # GAME SESSION IN ASCII
-def game(screen):
+def game(screen, preload_map=None):
     try:
-        # Map generation
-        map_generator = MapGenerator(MAP_DIMENSIONS)
-        map_generator.create_dumb_map(MAP_DIMENSIONS)
-        map_generator.generate_rogue_level(MAP_DIMENSIONS)
-        #for i in range(2):
-        #    pivot = Vector(random.randint(0, MAP_DIMENSIONS.x - 1), random.randint(0, MAP_DIMENSIONS.y - 1))
-        #    size = Vector(random.randint(1, 32), random.randint(1, 32))
-        #    map_generator.add_wall_block(pivot, size)
-        
-        map = map_generator.get_map()
+        map = preload_map
+        if map == None:
+            # Map generation
+            map_generator = MapGenerator(MAP_DIMENSIONS)
+            map_generator.create_dumb_map(MAP_DIMENSIONS)
+            map_generator.generate_rogue_level(MAP_DIMENSIONS)
+            #for i in range(2):
+            #    pivot = Vector(random.randint(0, MAP_DIMENSIONS.x - 1), random.randint(0, MAP_DIMENSIONS.y - 1))
+            #    size = Vector(random.randint(1, 32), random.randint(1, 32))
+            #    map_generator.add_wall_block(pivot, size)
+            map = map_generator.get_map()
 
         # Create game
         cur_game = Game(map)
@@ -135,7 +149,6 @@ main_menu_instructions = """
 # MAIN MENU USING TYPICAL TERMINAL UI
 # Todo: create an ASCIImatics navigatable menu
 def main_menu():
-    # MAIN MENU LOOP
     while True:
         print(main_menu_instructions)
         p_input = input("> ").strip().lower() # Player input, processed and standardized
@@ -144,10 +157,20 @@ def main_menu():
             i_input = int(p_input) # int value of the player's input
             match i_input:
                 case 1:
-                    Screen.wrapper(game)
+                    with ManagedScreen() as screen:
+                        game(screen)
                     print("\n> Exiting game...")
                 case 2:
-                    print("\nlevel editor")
+                    # print("\nlevel editor")
+                    print("")
+                    list_of_maps = MAP_FILE_MANAGER.list_avaliable_files() # Get avaliable map paths in /maps
+                    for i in range(len(list_of_maps)): # Show the avaliable maps in print listing
+                        print("{0}. {1}".format(i + 1, list_of_maps[i]))
+
+                    # TEST RUN GAME FROM THE THING
+                    loaded_map = MAP_FILE_MANAGER.load_map_from_file("maps/" + list_of_maps[0])
+                    with ManagedScreen() as screen:
+                        game(screen, loaded_map)
                 case 3:
                     print("\noptions")
                 case 4:

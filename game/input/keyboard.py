@@ -9,6 +9,7 @@ from enum import IntEnum
 
 class KeyCode(IntEnum):
     Q = 113
+    S = 115
     LeftArrow = -203
     UpArrow = -204
     RightArrow = -205

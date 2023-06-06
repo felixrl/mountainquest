@@ -100,7 +100,7 @@ class MapGenerator(object):
                 pivot = self.get_rogue_room_pivot(point)
                 dims = self.get_rogue_room_dim()
                 
-                new_room = Room(pivot, self.get_rogue_room_dim())
+                new_room = Room(pivot, dims)
 
                 self.room_grid.set_room(point, new_room)
 

@@ -33,3 +33,8 @@ class Enemy(Actor):
             # move x
 
         return new_action
+
+    # Collision handler - override
+    def collide(self, other):
+        super().collide(other)
+        print("Collision!")

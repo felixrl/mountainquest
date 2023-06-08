@@ -16,6 +16,8 @@ class Game(object):
         self.hero = None
         self.map = map
 
+        self.is_playing = True
+
     # GAME LOOP
     # From https://journal.stuffwithstuff.com/2014/07/15/a-turn-based-game-loop/
     # For a decoupled game loop with control via the UI, process one actor at a time before returning control

@@ -26,10 +26,22 @@ class Room:
     def disconnect(self, room):
         self.connected_rooms.remove(room)
 
+    # Functions for getting particular points
+    def get_top_left(self):
+        return self.pivot
+    def get_top_right(self):
+        return self.pivot + Vector(self.dimensions.x, 0)
+    def get_bottom_left(self):
+        return self.pivot + Vector(0, self.dimensions.y)
+    def get_bottom_right(self):
+        return self.pivot + self.dimensions
+
 # A class defining a grid of rooms
 class RoomGrid:
     def __init__(self, dimensions=Vector(3,3)):
         self.room_grid = np.zeros(dimensions.get_tuple(), dtype=Room)
+        self.room_cols = dimensions.x
+        self.room_rows = dimensions.y
     
     def set_room(self, point, room):
         self.room_grid[point.x, point.y] = room
@@ -40,9 +52,13 @@ class RoomGrid:
         x = i % self.room_cols
         y = i // self.room_rows
         return Vector(x, y)
+    def point_to_scalar_index(self, point):
+        return point.x + point.y * self.room_cols
     def get_at_scalar_index(self, i):
         point = self.scalar_index_to_2d(i)
         return self.room_grid[point.x, point.y]
+    def get_modulus(self):
+        return len(self.room_grid[0])
 
 
 # Map object, defines the world map, dimensions, and terrain contents
@@ -99,8 +115,9 @@ class MapGenerator(object):
                 
                 pivot = self.get_rogue_room_pivot(point)
                 dims = self.get_rogue_room_dim()
+                offset = self.get_rogue_room_offset(dims)
                 
-                new_room = Room(pivot, dims)
+                new_room = Room(pivot + offset, dims)
 
                 self.room_grid.set_room(point, new_room)
 
@@ -110,73 +127,98 @@ class MapGenerator(object):
         for p in points:
             self.apply_room(self.room_grid.get_room(p))
 
-        return
+        # return
 
         # Generate connections list
 
 
-        # Determine room connections
-        for i in range(len(points)):
-            if (i+1) in range(len(points)):
-                points[i].connect(points[i+1])
-            if (i-1) in range(len(points)):
-                points[i].connect(points[i-1])
-
         # Apply rooms
         for p in points:
-            self.apply_room(self.room_grid[p.x, p.y])
+            self.apply_room(self.room_grid.get_room(p))
+
+        # Determine room connections, tunnel
+        for i in range(len(points)):
+            if (i+1) in range(len(points)):
+                self.tunnel_between_rogue_rooms(self.room_grid.point_to_scalar_index(points[i]), self.room_grid.point_to_scalar_index(points[i+1]))
 
         # Draw tunnels
-        for x in range(cols):
-            for y in range(rows):
-                room1 = self.room_grid[x, y]
-                for c in room1.connected_rooms:
-                    self.tunnel_between_rooms(room1, c)
+        # for x in range(cols):
+        #     for y in range(rows):
+        #        room1 = self.room_grid.get_room(Vector(x, y))
+        #         for c in room1.connected_rooms:
+        #             self.tunnel_between_rogue_rooms(room1, c)
 
-    def tunnel_between_rooms(self, room1, room2):
-        r1x = 0
-        r1y = 0
-        r2x = 0
-        r2y = 0
-        if room1.pivot.x > room2.pivot.x: # Room 1 is right
-            r1x = room1.pivot.x
-            r1y = random.randint(room1.pivot.y + 1, room1.pivot.y + room1.dimensions.y + 1)
+    def tunnel_between_rogue_rooms(self, ri1, ri2):
+        if ri1 > ri2: # Swap indices if ri1 is greater, we need to always go right or down
+            s_temp = ri1
+            ri1 = ri2
+            ri2 = s_temp
+        
+        # Get the actual room data
+        r1 = self.room_grid.get_at_scalar_index(ri1)
+        r2 = self.room_grid.get_at_scalar_index(ri2)
 
-            r2x = room2.pivot.x + room2.dimensions.x
-            r2y = random.randint(room2.pivot.y + 1, room2.pivot.y + room2.dimensions.y + 1)
-        elif room1.pivot.x < room2.pivot.x: # Left
-            r1x = room1.pivot.x + room1.dimensions.x
-            r1y = random.randint(room1.pivot.y + 1, room1.pivot.y + room1.dimensions.y + 1)
+        door1 = Vector(0,0)
+        door2 = Vector(0,0)
+        distance = 0
+        turn_distance = 0
+        delta = 0
+        delta_turn = 0
+        turning_point = 0
 
-            r2x = room2.pivot.x
-            r2y = random.randint(room2.pivot.y + 1, room2.pivot.y + room2.dimensions.y + 1)
+        # HORIZONTAL
+        if ri1 + 1 == ri2:
+            door1 = Vector(r1.get_top_right().x, random.randint(r1.get_top_right().y + 1, r1.get_bottom_right().y - 1)) # Door 1, right wall, random Y
+            door2 = Vector(r2.get_top_left().x, random.randint(r2.get_top_left().y + 2, r2.get_bottom_left().y - 1)) # Door 2, left wall, random Y
+            # horizontal distance
+            distance = abs(door2.x - door1.x)
+            # vertical distance (to move on turn)
+            turn_distance = abs(door2.y - door1.y)
+            delta = Vector(1,0)
+            delta_turn = Vector(0, 0)
 
-        elif room1.pivot.y > room2.pivot.y: # Room 1 is down
-            r1y = room1.pivot.y
-            r1x = random.randint(room1.pivot.x + 1, room1.pivot.x + room1.dimensions.x + 1)
-        elif room1.pivot.y < room2.pivot.y: # Up
-            pass
+            if door1.y < door2.y:
+                # moving upwards as the second door is higher
+                delta_turn = Vector(0, 1)
+            else:
+                # moving downwards or not at all as the second door is lower
+                delta_turn = Vector(0, -1)
 
-        d1 = Vector(r1x, r1y)
-        d2 = Vector(r2x, r2y)
+            turning_point = random.randint(0, distance) # turn at a random distance in between
 
-        distances = Vector(abs(d2.x - d1.x), abs(d2.y - d1.y))
+            # Connect these two doors
+        # VERTICAL
+        elif ri1 + self.room_grid.get_modulus() == ri2:
+            return
 
-        if d1.y < d2.y: # Tunnel up
-            pass
-        elif d1:
-            pass
+        # TUNNEL ACCORDING TO SETTINGS
+        # http://99.255.210.85/2019/06/03/rogue-level-generation.html
+        cur_tunnel_point = door1
+        while distance > 0: # Still not at target
+            cur_tunnel_point += delta # move according to delta
+            self.new_map.set_tile(cur_tunnel_point, 0) # SET THE TILE AS EMPTY
+            if distance == turning_point: # Turn move vertically
+                while turn_distance > 0: # Not yet moved all vertically
+                    cur_tunnel_point += delta_turn
+                    self.new_map.set_tile(cur_tunnel_point, 0) # SET THE TILE AS EMPTY
+                    turn_distance -= 1
+            distance -= 1
+
 
     def is_room_in_range(self, room_point):
         return (room_point.x >= 0 and room_point.x < self.room_cols) and (room_point.y >= 0 and room_point.y < self.room_rows)
 
-    def get_rogue_room_pivot(self, point=Vector()):
+    def get_rogue_room_pivot(self, point=Vector()): # The static pivot from each rogue room is tiled from
         x = point.x * self.grid_cell_dimensions.x + 1
         y = point.y * self.grid_cell_dimensions.y
         return Vector(int(x), int(y))
-    def get_rogue_room_dim(self):
+    def get_rogue_room_offset(self, dim): # A random offset to be added to each rogue room
+        x = random.randint(0, self.grid_cell_dimensions.x - dim.x - 1)
+        y = random.randint(1, self.grid_cell_dimensions.y - dim.y - 1) # Y offset always starts at one to prevent top clipping
+        return Vector(x, y)
+    def get_rogue_room_dim(self): # A random dimension for each room within bounds
         x = random.randint(4, self.grid_cell_dimensions.x - 1)
-        y = random.randint(4, self.grid_cell_dimensions.y - 1)
+        y = random.randint(4, self.grid_cell_dimensions.y - 2)
         return Vector(x, y)
     
     # RECURSIVE ALGORITHM FOR DETERMINING A VIABLE PRIME PATH

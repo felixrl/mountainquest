@@ -4,7 +4,8 @@
 
 # VERSION HISTORY
 # Created 5/24/2023
-# Added saving and loading functionality - 6/5/2023
+# Added saving, loading, and listing functionality - 6/5/2023
+# Fixed an issue where a loaded map would include an extra column on the far right - 6/6/2023
 
 # TODO
 # Level editor
@@ -17,6 +18,7 @@
 # SORT IN ALPHABETICAL ORDER
 
 from utilities.math_utility import *
+from utilities.sort_utility import *
 
 from game.map import *
 
@@ -79,3 +81,7 @@ class MapFileManager(object):
     def list_avaliable_files(self):  
         my_files = [f for f in listdir("maps") if isfile(join("maps", f))]
         return my_files
+
+    def list_sorted_avaliable_files(self):
+        avaliable_files = self.list_avaliable_files()
+        return merge_sort(avaliable_files, compare_alphabetically)

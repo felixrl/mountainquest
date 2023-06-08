@@ -16,6 +16,7 @@ from game.map_generator import *
 from game.map_file_manager import *
 from game.actor import *
 from game.actors.enemy import *
+from game.actors.hero import *
 from game.action import *
 
 import game.input.keyboard as Keyboard
@@ -86,7 +87,7 @@ def game(screen, preload_map=None):
         cur_game_renderer = GameRenderer(cur_game)
 
         # Create actors
-        new_player = Actor(Vector(1, 1), "@", Color.WHITE)
+        new_player = Hero(Vector(1, 1), "@", Color.WHITE, game=cur_game)
         cur_game.add_actor(new_player)  
         cur_game.set_hero(new_player)
 
@@ -128,6 +129,9 @@ def game(screen, preload_map=None):
             while process_timer >= TIME_BETWEEN_PROCESS:
                 process_timer -= TIME_BETWEEN_PROCESS
                 cur_game.process()
+            
+            if not cur_game.is_playing:
+                break
 
             # RENDERING
             cur_game_renderer.render(screen)
@@ -146,6 +150,35 @@ main_menu_instructions = """
 """
 # The above text has leading and trailing new lines included
 
+def level_editor():
+    # print("\nlevel editor")
+    list_of_maps = MAP_FILE_MANAGER.list_avaliable_files() # Get avaliable map paths in /maps
+    while True:
+        print("")
+        for i in range(len(list_of_maps)): # Show the avaliable maps in print listing
+            print("{0}. {1}".format(i + 1, list_of_maps[i]))
+        print("")
+
+        p_input = input("> ").strip().lower() # Player input, processed and standardized
+        # INT PROCESSING
+        try:
+            i_input = int(p_input) # int value of the player's input
+            with ManagedScreen() as screen:
+                loaded_map = MAP_FILE_MANAGER.load_map_from_file("maps/" + list_of_maps[i_input - 1])
+                game(screen, loaded_map)
+        except:
+            # STRING PROCESSING
+            match p_input:
+                case "q":
+                    break
+                case "s": # SORTED PRINT
+                    list_of_maps = MAP_FILE_MANAGER.list_sorted_avaliable_files() # Get avaliable map paths in /maps
+                case "l": # NOT SORTED PRINT
+                    list_of_maps = MAP_FILE_MANAGER.list_avaliable_files()
+                case _:
+                    print("\nPlease enter a valid input.")
+    print("")
+
 # MAIN MENU USING TYPICAL TERMINAL UI
 # Todo: create an ASCIImatics navigatable menu
 def main_menu():
@@ -156,21 +189,13 @@ def main_menu():
         try:
             i_input = int(p_input) # int value of the player's input
             match i_input:
-                case 1:
+                case 1: # RUN GAME
                     with ManagedScreen() as screen:
                         game(screen)
                     print("\n> Exiting game...")
-                case 2:
-                    # print("\nlevel editor")
-                    print("")
-                    list_of_maps = MAP_FILE_MANAGER.list_avaliable_files() # Get avaliable map paths in /maps
-                    for i in range(len(list_of_maps)): # Show the avaliable maps in print listing
-                        print("{0}. {1}".format(i + 1, list_of_maps[i]))
-
-                    # TEST RUN GAME FROM THE THING
-                    loaded_map = MAP_FILE_MANAGER.load_map_from_file("maps/" + list_of_maps[0])
-                    with ManagedScreen() as screen:
-                        game(screen, loaded_map)
+                case 2: # LEVEL EDITOR
+                    level_editor()
+                    print("\n> Exiting level editor...")
                 case 3:
                     print("\noptions")
                 case 4:

@@ -22,6 +22,8 @@ class Actor(object):
         self.energy = energy
         self.energy_gain = energy_gain
 
+        self.health = 1
+
         # Action system
         self.next_action = None
 
@@ -50,4 +52,4 @@ class Actor(object):
 
     # Collision handler - called when one character attempts to move into another
     def collide(self, other):
-        print("Collision!")
+        pass

@@ -37,4 +37,3 @@ class Enemy(Actor):
     # Collision handler - override
     def collide(self, other):
         super().collide(other)
-        print("Collision!")

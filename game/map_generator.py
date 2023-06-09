@@ -6,6 +6,7 @@
 # 5.23.2023 - Began work on room connection system, prime path finder
 # 5.25.2023 - Added demo map generator for full room, recursive function for generating a distance map with flood fill
 # 6.1.2023 - Added function for creating a wall block
+# 6.8.2023, 6.9.2023 - Added rogue tunneling functionality
 
 from utilities.math_utility import *
 from game.map import *
@@ -122,7 +123,7 @@ class MapGenerator(object):
                 self.room_grid.set_room(point, new_room)
 
         # Determine the prime path, a list of room points that should be followed
-        points = self.determine_prime_path(Vector(0, 0))
+        points = self.determine_prime_path(Vector(0, 0), [])
 
         for p in points:
             self.apply_room(self.room_grid.get_room(p))
@@ -169,7 +170,7 @@ class MapGenerator(object):
         # HORIZONTAL
         if ri1 + 1 == ri2:
             door1 = Vector(r1.get_top_right().x, random.randint(r1.get_top_right().y + 1, r1.get_bottom_right().y - 1)) # Door 1, right wall, random Y
-            door2 = Vector(r2.get_top_left().x, random.randint(r2.get_top_left().y + 2, r2.get_bottom_left().y - 1)) # Door 2, left wall, random Y
+            door2 = Vector(r2.get_top_left().x, random.randint(r2.get_top_left().y + 1, r2.get_bottom_left().y - 1)) # Door 2, left wall, random Y
             # horizontal distance
             distance = abs(door2.x - door1.x)
             # vertical distance (to move on turn)
@@ -183,27 +184,26 @@ class MapGenerator(object):
             else:
                 # moving downwards or not at all as the second door is lower
                 delta_turn = Vector(0, -1)
-
-            turning_point = random.randint(0, distance) # turn at a random distance in between
-
-            # Connect these two doors
         # VERTICAL
         elif ri1 + self.room_grid.get_modulus() == ri2:
-            door1 = Vector(random.randint(r1.get_bottom_left().x + 1, r1.get_bottom_right().x - 2), r1.get_bottom_right().y)
-            door2 = Vector(random.randint(r2.get_top_left().x + 1, r1.get_top_right().x - 2), r2.get_top_right().y)
+            print("vertical")
+            door1 = Vector(random.randint(r1.get_bottom_left().x + 1, r1.get_bottom_right().x - 1), r1.get_bottom_right().y)
+            door2 = Vector(random.randint(r2.get_top_left().x + 1, r2.get_top_right().x - 1), r2.get_top_right().y)
 
             distance = abs(door2.y - door1.y)
+            turn_distance = abs(door2.x - door1.x)
+
             delta = Vector(0,1)
             delta_turn = Vector(0,0)
 
             if door1.x < door2.x:
-                # moving left
-                delta_turn = Vector(-1,0)
-            else:
                 # moving right
                 delta_turn = Vector(1,0)
-            
-            turning_point = random.randint(0, distance) # turn at a random distance in between
+            else:
+                # moving left
+                delta_turn = Vector(-1,0)
+
+        turning_point = random.randint(1, distance) # turn at a random distance in between
 
         # TUNNEL ACCORDING TO SETTINGS
         # http://99.255.210.85/2019/06/03/rogue-level-generation.html
@@ -238,6 +238,11 @@ class MapGenerator(object):
     
     # RECURSIVE ALGORITHM FOR DETERMINING A VIABLE PRIME PATH
     def determine_prime_path(self, point=Vector(), points=[]):
+        st = ""
+        for p in points:
+            st += str(p) + " "
+        print(st)
+
         points.append(point) # Add the current point to the list path
 
         options = [Vector(0,-1), Vector(0,1), Vector(1,0)] # Inital options - no left as that would go back

@@ -5,6 +5,7 @@
 
 # Version History
 # 5.30.2023 - create file
+#6.9.2023 - adjusted renderer to not draw walls
 
 from utilities.math_utility import *
 

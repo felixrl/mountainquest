@@ -5,6 +5,7 @@
 # VERSION HISTORY
 # 5.31.2023 - added input handling for arrow keys
 # 6.2.2023 - added TIME_BETWEEN_PROCESS, delays turns by a constant value to avoid instantaneous movements
+# 6.9.2023 - added tracebook tracing for on errors
 
 from asciimatics.screen import Screen, ManagedScreen
 from utilities.math_utility import *
@@ -140,6 +141,7 @@ def game(screen, preload_map=None):
             screen.refresh()    
     except Exception as e:
         print("\n> Error: " + str(e))
+        print("> " + str(traceback.format_exc()))
         print("> An error occured in MountainQuest. Exiting to the main menu.")
 
 # MAIN MENU

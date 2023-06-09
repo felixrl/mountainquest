@@ -44,6 +44,7 @@ class GameRenderer(object):
                         char = "#"
                         if self.game.map.is_contiguous(Vector(x,y)):
                             char = " "
+                        char=" "
                     case TileType.EXIT:
                         char = "L"
                         color = Color.YELLOW

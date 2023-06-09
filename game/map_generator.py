@@ -189,11 +189,26 @@ class MapGenerator(object):
             # Connect these two doors
         # VERTICAL
         elif ri1 + self.room_grid.get_modulus() == ri2:
-            return
+            door1 = Vector(random.randint(r1.get_bottom_left().x + 1, r1.get_bottom_right().x - 2), r1.get_bottom_right().y)
+            door2 = Vector(random.randint(r2.get_top_left().x + 1, r1.get_top_right().x - 2), r2.get_top_right().y)
+
+            distance = abs(door2.y - door1.y)
+            delta = Vector(0,1)
+            delta_turn = Vector(0,0)
+
+            if door1.x < door2.x:
+                # moving left
+                delta_turn = Vector(-1,0)
+            else:
+                # moving right
+                delta_turn = Vector(1,0)
+            
+            turning_point = random.randint(0, distance) # turn at a random distance in between
 
         # TUNNEL ACCORDING TO SETTINGS
         # http://99.255.210.85/2019/06/03/rogue-level-generation.html
         cur_tunnel_point = door1
+        self.new_map.set_tile(cur_tunnel_point, 0) # SET THE TILE AS EMPTY
         while distance > 0: # Still not at target
             cur_tunnel_point += delta # move according to delta
             self.new_map.set_tile(cur_tunnel_point, 0) # SET THE TILE AS EMPTY

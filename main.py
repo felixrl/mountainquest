@@ -26,7 +26,9 @@ from datetime import datetime
 import random
 import logging
 
-
+# https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+# for tracing errors
+import traceback
 
 MAP_DIMENSIONS = Vector(80, 24) # Dimensions of the map
 TIME_BETWEEN_PROCESS = 0.01

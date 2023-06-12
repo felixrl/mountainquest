@@ -5,7 +5,8 @@
 
 # Version History
 # 5.30.2023 - create file
-#6.9.2023 - adjusted renderer to not draw walls
+# 6.9.2023 - adjusted renderer to not draw walls
+# 6.12.2023 - adjusted renderer to draw all non-wall objects as floors
 
 from utilities.math_utility import *
 
@@ -49,6 +50,8 @@ class GameRenderer(object):
                     case TileType.EXIT:
                         char = "L"
                         color = Color.YELLOW
+                    case _:
+                        char = "."
                 screen.print_at(char, x, y, color)
         
         # Render actors

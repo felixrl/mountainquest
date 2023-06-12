@@ -2,12 +2,17 @@
 # MountainQuest
 # Felix Liu
 
+# Version history
+# 6.12.2023 - Added entrance tile
+
 import numpy as np
 
 from utilities.math_utility import *
 
 FLOOR = 0
 WALL = 1
+ENTRANCE = 2
+EXIT = 3
 
 VERTICAL = 0
 HORIZONTAL = 1

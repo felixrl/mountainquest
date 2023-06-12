@@ -44,7 +44,7 @@ class MoveAction(ActorAction):
         new_pos = actor.get_position() + self.dir
         if not game.map.is_in_range(new_pos): # Out of range, can't move
             return
-        if game.map.get_tile(new_pos) != 0: # Not floor, can't move
+        if game.map.get_tile(new_pos) == 1: # Is wall, can't move
             return
         for a in game.actors:
             if a == actor: # Don't compare with self!

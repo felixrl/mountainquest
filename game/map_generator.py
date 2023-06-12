@@ -7,6 +7,7 @@
 # 5.25.2023 - Added demo map generator for full room, recursive function for generating a distance map with flood fill
 # 6.1.2023 - Added function for creating a wall block
 # 6.8.2023, 6.9.2023 - Added rogue tunneling functionality
+# 6.12.2023 - Added entrance tile and exit tile
 
 from utilities.math_utility import *
 from game.map import *
@@ -128,11 +129,6 @@ class MapGenerator(object):
         for p in points:
             self.apply_room(self.room_grid.get_room(p))
 
-        # return
-
-        # Generate connections list
-
-
         # Apply rooms
         for p in points:
             self.apply_room(self.room_grid.get_room(p))
@@ -142,12 +138,15 @@ class MapGenerator(object):
             if (i+1) in range(len(points)):
                 self.tunnel_between_rogue_rooms(self.room_grid.point_to_scalar_index(points[i]), self.room_grid.point_to_scalar_index(points[i+1]))
 
-        # Draw tunnels
-        # for x in range(cols):
-        #     for y in range(rows):
-        #        room1 = self.room_grid.get_room(Vector(x, y))
-        #         for c in room1.connected_rooms:
-        #             self.tunnel_between_rogue_rooms(room1, c)
+        # Get the top-left corner of the first room and set it as the ENTRANCE
+        starting_tile = self.room_grid.get_room(Vector(0,0)).pivot
+        self.new_map.set_tile(starting_tile, ENTRANCE)
+
+        # FLOOD FILL - TAKES TIME, DETERMINE MAXIMAL DISTANCE
+        self.generate_distance_map(starting_tile) # Blocking, takes time
+        max_val = np.max(self.distance_map)
+        coords = np.argwhere(self.distance_map == max_val) # https://stackoverflow.com/questions/27175400/how-to-find-the-index-of-a-value-in-2d-array-in-python
+        self.new_map.set_tile(Vector(coords[0][0], coords[0][1]), EXIT) # Set the exit to the FURTHEST tile!
 
     def tunnel_between_rogue_rooms(self, ri1, ri2):
         if ri1 > ri2: # Swap indices if ri1 is greater, we need to always go right or down
@@ -186,7 +185,6 @@ class MapGenerator(object):
                 delta_turn = Vector(0, -1)
         # VERTICAL
         elif ri1 + self.room_grid.get_modulus() == ri2:
-            print("vertical")
             door1 = Vector(random.randint(r1.get_bottom_left().x + 1, r1.get_bottom_right().x - 1), r1.get_bottom_right().y)
             door2 = Vector(random.randint(r2.get_top_left().x + 1, r2.get_top_right().x - 1), r2.get_top_right().y)
 
@@ -238,11 +236,6 @@ class MapGenerator(object):
     
     # RECURSIVE ALGORITHM FOR DETERMINING A VIABLE PRIME PATH
     def determine_prime_path(self, point=Vector(), points=[]):
-        st = ""
-        for p in points:
-            st += str(p) + " "
-        print(st)
-
         points.append(point) # Add the current point to the list path
 
         options = [Vector(0,-1), Vector(0,1), Vector(1,0)] # Inital options - no left as that would go back
@@ -312,7 +305,7 @@ class MapGenerator(object):
         self.distance_map = np.zeros(self.new_map.dimensions.get_tuple(), dtype=int)
         self.distance_map.fill(-1) # Initalize all distances to -1 - uninitalized
         sys.setrecursionlimit(self.new_map.dimensions.x * self.new_map.dimensions.y)
-        self.flood_fill(Vector(1, 1), 0)
+        self.flood_fill(start + Vector(1,1), 0) # Add Vector(1,1) fixes it, off by one error?
 
     def get_distance_map(self):
         return self.distance_map

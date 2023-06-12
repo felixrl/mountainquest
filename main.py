@@ -6,6 +6,7 @@
 # 5.31.2023 - added input handling for arrow keys
 # 6.2.2023 - added TIME_BETWEEN_PROCESS, delays turns by a constant value to avoid instantaneous movements
 # 6.9.2023 - added tracebook tracing for on errors
+# 6.12.2023 - added victory condition
 
 from asciimatics.screen import Screen, ManagedScreen
 from utilities.math_utility import *
@@ -90,9 +91,14 @@ def game(screen, preload_map=None):
         cur_game_renderer = GameRenderer(cur_game)
 
         # Create actors
-        new_player = Hero(Vector(1, 1), "@", Color.WHITE, game=cur_game)
-        cur_game.add_actor(new_player)  
-        cur_game.set_hero(new_player)
+
+        for x in range(map.width):
+            for y in range(map.height):
+                if map.get_tile(Vector(x,y)) == ENTRANCE:
+                    new_player = Hero(Vector(x, y), "@", Color.WHITE, game=cur_game)
+                    cur_game.add_actor(new_player)  
+                    cur_game.set_hero(new_player)
+                    break
 
         for i in range(10):
             new_pos = Vector(0,0)
@@ -100,8 +106,8 @@ def game(screen, preload_map=None):
                 new_pos = Vector(random.randint(0, MAP_DIMENSIONS.x - 1), random.randint(0, MAP_DIMENSIONS.y - 1))
                 if cur_game.map.get_tile(new_pos) == TileType.FLOOR:
                     break
-            new_enemy = Enemy(new_pos, "e", Color.RED, 1, 0.5, cur_game)
-            cur_game.add_actor(new_enemy)
+            # new_enemy = Enemy(new_pos, "e", Color.RED, 1, 0.5, cur_game)
+            # cur_game.add_actor(new_enemy)
 
         # for x in range(MAP_DIMENSIONS.x):
         #    for y in range(MAP_DIMENSIONS.y):
@@ -132,6 +138,10 @@ def game(screen, preload_map=None):
             while process_timer >= TIME_BETWEEN_PROCESS:
                 process_timer -= TIME_BETWEEN_PROCESS
                 cur_game.process()
+
+            if map.get_tile(cur_game.hero.get_position()) == EXIT: # THE PLAYER IS STANDING ON THE EXIT
+                print("\nYou win!")
+                cur_game.stop()
             
             if not cur_game.is_playing:
                 break

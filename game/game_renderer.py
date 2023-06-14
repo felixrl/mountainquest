@@ -38,7 +38,7 @@ class GameRenderer(object):
             for y in range(self.game.map.height):
                 tile = self.game.map.get_tile(Vector(x, y))
                 char = " "
-                color = Color.GREEN
+                color = Color.DEFAULT_COLOR
                 match tile:
                     case TileType.FLOOR:
                         char = "."

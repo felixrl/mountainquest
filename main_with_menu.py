@@ -10,7 +10,7 @@
 
 from utilities.math_utility import *
 
-from ascii.ascii_screen import *
+from screen.ascii_screen import *
 
 SCREEN_DIMENSIONS = Vector(80, 24)
 

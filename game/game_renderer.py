@@ -7,6 +7,7 @@
 # 5.30.2023 - create file
 # 6.9.2023 - adjusted renderer to not draw walls
 # 6.12.2023 - adjusted renderer to draw all non-wall objects as floors
+# 6.15.2023 - added UI overlay at the bottom
 
 from utilities.math_utility import *
 
@@ -57,3 +58,31 @@ class GameRenderer(object):
         # Render actors
         for a in self.game.actors:
             screen.print_at(a.get_char(), a.get_position().x, a.get_position().y, a.get_color())
+
+        # UI TEST
+        for x in range(self.game.map.width):
+            for y in range(10):
+                char = " "
+                if x == 0 or x == self.game.map.width - 1:
+                    char = "|"
+                if y == 0 or y == 9:
+                    char = "-"
+                screen.print_at(char, x, self.game.map.height + y, Color.DEFAULT_COLOR)
+
+        counter = 0
+        for a in self.game.actors:
+            my_string = ""
+            actor_name = "Actor"
+            color = Color.DEFAULT_COLOR
+
+            if a == self.game.hero:
+                actor_name = "Hero"
+
+            if self.game.actors[self.game.current_actor_index] == a:
+                my_string = "> " + actor_name
+                color = Color.YELLOW
+            else:
+                my_string = actor_name
+
+            screen.print_at(my_string, 2, self.game.map.height + 1 + counter, color)
+            counter += 1

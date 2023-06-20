@@ -10,7 +10,7 @@
 
 from utilities.math_utility import *
 
-from game.action import *
+from game.actions.action import *
 
 from game.game_renderer import Color
 

@@ -7,20 +7,10 @@
 # Added saving, loading, and listing functionality - 6/5/2023
 # Fixed an issue where a loaded map would include an extra column on the far right - 6/6/2023
 
-# TODO
-# Level editor
-# Dedicated directory that reports all avaliable load options
-# Prompt for save overwriting
-# ENCODING/DECODING SYSTEM MAP
-# Make sure to check if directories exist before saving to path!
-
-# SEARCH FOR SAVED FILES
-# SORT IN ALPHABETICAL ORDER
-
 from utilities.math_utility import *
 from utilities.sort_utility import *
 
-from game.map import *
+from game.tilemap import *
 
 from os import listdir
 from os.path import isfile, join
@@ -34,6 +24,7 @@ class MapFileManager(object):
     def __init__(self):
         pass
 
+    # READ
     def load_map_from_file(self, path):
         file_handle = open(path, 'r')
 
@@ -49,7 +40,7 @@ class MapFileManager(object):
         dims = Vector(x_val, y_val)
 
         # Create map
-        map = Map(dims)
+        map = TileMap(dims)
 
         # Craft the map out of tiles
         x = 0
@@ -66,6 +57,7 @@ class MapFileManager(object):
         
         return map
 
+    # WRITE
     def save_map_to_file(self, path, map):
         file_handle = open(path, 'w')
 
@@ -78,10 +70,10 @@ class MapFileManager(object):
             file_handle.write("\n")
         file_handle.close()
     
-    def list_avaliable_files(self):  
+    def list_avaliable_files(self): # List the avaliable files
         my_files = [f for f in listdir("maps") if isfile(join("maps", f))]
         return my_files
 
-    def list_sorted_avaliable_files(self):
+    def list_sorted_avaliable_files(self): # List avaliable files after sorting them alphabetically
         avaliable_files = self.list_avaliable_files()
         return merge_sort(avaliable_files, compare_alphabetically)

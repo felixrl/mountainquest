@@ -6,7 +6,7 @@
 # Version History
 # 6.7.2023 - created file, created hero subclass
 
-from game.actor import *
+from game.actors.actor import *
 
 class Hero(Actor):
     def __init__(self, position=Vector(0,0), char="@", color=Color.DEFAULT_COLOR, energy=1, energy_gain=1, game=None):

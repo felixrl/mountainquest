@@ -1,4 +1,4 @@
-# LEVEL GENERATOR
+# MAP GENERATOR
 # MountainQuest
 # Felix Liu
 
@@ -8,12 +8,11 @@
 # 6.1.2023 - Added function for creating a wall block
 # 6.8.2023, 6.9.2023 - Added rogue tunneling functionality
 # 6.12.2023 - Added entrance tile and exit tile
-# 6.19.2023 - Renamed to LevelGenerator, integrated new TileMap implementation
+# 6.19.2023 - Integrated new TileMap implementation
 
 from utilities.math_utility import *
 
 from game.tilemap import *
-from game.level import *
 
 import random
 import sys
@@ -66,33 +65,39 @@ class RoomGrid:
 # ---------------
 
 # Generates all level data, including entities, rooms, and tilemap
-class LevelGenerator(object):
+class MapGenerator(object):
     def __init__(self, dimensions=Vector(32, 32)):
-        self.create_new_level()
+        self.create_new_entities()
         self.create_new_tilemap(dimensions) # Create a new empty tilemap
 
-    # GET ACCESS TO THE FINISHED LEVEL ONCE DONE
-    def get_level(self):
-        return self.new_level
-
-    # LEVEL CREATION
-    def create_new_level(self):
-        self.new_level = Level()
+    # ENTITIES
+    def get_new_entites(self):
+        return self.new_entities
+    def create_new_entities(self):
+        self.new_entities = []
 
     # TILEMAP
+    def get_new_tilemap(self):
+        return self.new_tilemap
+    def get_start_point(self):
+        return self.start
+    def get_end_point(self):
+        return self.end
+    
     def create_new_tilemap(self, dimensions=Vector(32, 32)):
-        self.new_level.tilemap = TileMap(dimensions) # New tilemap
+        self.new_tilemap = TileMap(dimensions) # New tilemap
         self.dimensions = dimensions
+    
     # Tilemap generation
     def fill_with(self, tile_type=TileType.WALL):
-        self.new_level.tilemap.fill(tile_type)
+        self.new_tilemap.fill(tile_type)
     # Add a block of wall
     def add_block(self, pivot=Vector(0,0), size=Vector(10,10), tile_type=TileType.WALL):
         for x in range(size.x):
             for y in range(size.y):
                 new_pos = pivot + Vector(x, y) # For the area starting from top-left pivot
-                if self.new_level.tilemap.is_in_range(new_pos):
-                    self.new_level.tilemap.set_tile(new_pos, tile_type)
+                if self.new_tilemap.is_in_range(new_pos):
+                    self.new_tilemap.set_tile(new_pos, tile_type)
 
     # ROGUE-STYLE LEVEL GENERATION
     # http://99.255.210.85/2019/06/03/rogue-level-generation.html
@@ -131,14 +136,14 @@ class LevelGenerator(object):
         # Modify individual rooms
 
         # ROOM #1 - ENTRANCE
-        entrance_room = self.room_grid.get_room(p)
+        entrance_room = self.room_grid.get_room(points[0])
         entrance = Vector((entrance_room.pivot.x + entrance_room.dimensions.x // 2), (entrance_room.pivot.y + entrance_room.dimensions.y // 2))
-        self.new_level.start = entrance # Set the start position to the center of the entrance room
+        self.start = entrance # Set the start position to the center of the entrance room
 
         # LAST ROOM - EXIT
-        exit_room = self.room_grid.get_room(len(points) - 1)
+        exit_room = self.room_grid.get_room(points[len(points) - 1])
         exit = Vector((exit_room.pivot.x + exit_room.dimensions.x // 2), (exit_room.pivot.y + exit_room.dimensions.y // 2))
-        self.new_level.end = exit
+        self.end = exit
 
         # Apply rooms
         for p in points:
@@ -207,14 +212,14 @@ class LevelGenerator(object):
         # TUNNEL ACCORDING TO SETTINGS
         # http://99.255.210.85/2019/06/03/rogue-level-generation.html
         cur_tunnel_point = door1
-        self.new_level.tilemap.set_tile(cur_tunnel_point, 0) # SET THE TILE AS EMPTY
+        self.new_tilemap.set_tile(cur_tunnel_point, 0) # SET THE TILE AS EMPTY
         while distance > 0: # Still not at target
             cur_tunnel_point += delta # move according to delta
-            self.new_level.tilemap.set_tile(cur_tunnel_point, 0) # SET THE TILE AS EMPTY
+            self.new_tilemap.set_tile(cur_tunnel_point, 0) # SET THE TILE AS EMPTY
             if distance == turning_point: # Turn move vertically
                 while turn_distance > 0: # Not yet moved all vertically
                     cur_tunnel_point += delta_turn
-                    self.new_level.tilemap.set_tile(cur_tunnel_point, 0) # SET THE TILE AS EMPTY
+                    self.new_tilemap.set_tile(cur_tunnel_point, 0) # SET THE TILE AS EMPTY
                     turn_distance -= 1
             distance -= 1
 
@@ -250,60 +255,17 @@ class LevelGenerator(object):
                 if not new_point in points:
                     return self.determine_prime_path(new_point, points) # Move
         return points # No more possible moves, return final path
-        
-    # GENERATE ROGUE-STYLE ROOMS CONNECTED BY CORRIDORS
-    def generate_dungeon_rooms(self, dimensions, num_of_rooms=10):
-        self.create_new_map(dimensions)
-        self.fill_with_wall()
-
-        rooms = []
-        room_counter = 0
-        while room_counter < num_of_rooms:
-            new_room = self.attempt_generate_room()
-            if new_room == -1:
-                continue
-            rooms.append(new_room)
-            room_counter += 1
-            self.apply_room(new_room)
-        
-        # for r in rooms:
-            # self.apply_room(r)
-    
-    def attempt_generate_room(self):
-        # generate random coords
-        pivot = Vector(random.randint(0, self.new_level.tilemap.width), random.randint(0, self.new_level.tilemap.height))
-        dims = Vector(random.randint(10, 20), random.randint(5, 10))
-        
-        if not self.new_level.tilemap.is_in_range(pivot) or not self.new_level.tilemap.is_in_range(pivot + dims):
-            return -1
-        for x in range(dims.x):
-            for y in range(dims.y):
-                offset = Vector(x, y)
-                if self.new_level.tilemap.get_tile(pivot + offset) == TileType.FLOOR:
-                    return -1
-        
-        # Check padding
-        for x in range(dims.x + 2):
-            for y in range(dims.y + 2):
-                offset = Vector(x, y)
-                new_pivot = pivot - Vector(1, 1)
-                if not self.new_level.tilemap.is_in_range(new_pivot + offset):
-                    return -1
-                if self.new_level.tilemap.get_tile(new_pivot + offset) == TileType.FLOOR:
-                    return -1
-
-        return Room(pivot, dims)
     
     def apply_room(self, room):
         # actually generate it
         for x in range(room.dimensions.x):
             for y in range(room.dimensions.y):
                 offset = Vector(x, y)
-                self.new_level.tilemap.set_tile(room.pivot + offset, TileType.FLOOR)
+                self.new_tilemap.set_tile(room.pivot + offset, TileType.FLOOR)
 
     # GENERATE A MAP CONTAINING DISTANCES FROM A CHOSEN "SPAWN POINT"
     def generate_distance_map(self, start=Vector(0,0)):
-        self.distance_map = np.zeros(self.new_level.tilemap.dimensions.get_tuple(), dtype=int)
+        self.distance_map = np.zeros(self.new_tilemap.dimensions.get_tuple(), dtype=int)
         self.distance_map.fill(-1) # Initalize all distances to -1 - uninitalized
         sys.setrecursionlimit(self.dimensions.x * self.dimensions.y)
         self.flood_fill(start + Vector(1,1), 0) # Add Vector(1,1) fixes it, off by one error?
@@ -314,11 +276,11 @@ class LevelGenerator(object):
     # RECURSIVE FLOOD FILL, DOES NOT WORK ON LARGER MAPS DUE TO PYTHON'S RECURSION LIMIT UNLESS USING sys.setrecursionlimit
     # Performs a flood fill operation starting at a point recursively and saves the resulting map to distance_map
     def flood_fill(self, point=Vector(0,0), distance=0):
-        if not self.new_level.tilemap.is_in_range(point): # Out of range, cease filling
+        if not self.new_tilemap.is_in_range(point): # Out of range, cease filling
             return
         if self.distance_map[point.x, point.y] != -1 and self.distance_map[point.x, point.y] <= distance: # Already filled with smaller value
             return
-        if self.new_level.tilemap.get_tile(point) != TileType.FLOOR: # Hit wall, terminate
+        if self.new_tilemap.get_tile(point) != TileType.FLOOR: # Hit wall, terminate
             return
 
         # FLOOD FILLING

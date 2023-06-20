@@ -6,7 +6,7 @@
 # Version History
 # 6.2.2023 - created file and moved enemy subclass
 
-from game.actor import *
+from game.actors.actor import *
 
 class Enemy(Actor):
     def __init__(self, position=Vector(0,0), char="e", color=Color.DEFAULT_COLOR, energy=1, energy_gain=1, game=None):

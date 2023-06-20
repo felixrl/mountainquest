@@ -4,7 +4,7 @@
 # Felix Liu
 
 # Version History
-# 5.29.2023 - created file
+# 5.29.2023 - created file, added Game class
 
 from utilities.math_utility import *
 
@@ -39,6 +39,7 @@ class Game(object):
             cur_actor.energy += cur_actor.energy_gain
 
     # ACTORS
+    # Actor management
     def add_actor(self, a):
         self.actors.append(a)
     def remove_actor(self, a):
@@ -46,7 +47,14 @@ class Game(object):
     
     def set_hero(self, a):
         self.hero = a
-            
+
+    # SEARCH FOR ACTOR BY POSITION
+    def search_for_actor_at(self, position=Vector(0,0)):
+        for actor in self.actors: # Linear search
+            if actor.position == position:
+                return actor
+        return None # Not found
+
     # Playing controls
     def play(self):
         self.is_playing = True

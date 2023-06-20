@@ -10,21 +10,9 @@
 # 6.15.2023 - added UI overlay at the bottom
 
 from utilities.math_utility import *
+from utilities.color_utility import Color
 
 from game.tilemap import *
-
-from enum import IntEnum
-
-class Color(IntEnum):
-    DEFAULT_COLOR = 7
-    RED = 1
-    GREEN = 2
-    YELLOW = 3
-    BLUE = 4
-    PURPLE = 5
-    TEAL = 6
-    BLACK = 0
-    WHITE = 7
 
 class GameRenderer(object):
     def __init__(self, game=None):

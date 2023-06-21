@@ -11,6 +11,9 @@ class KeyCode(IntEnum):
     Q = 113
     S = 115
     Z = 122
+    X = 120
+    G = 103
+    P = 112
     LeftArrow = -203
     UpArrow = -204
     RightArrow = -205

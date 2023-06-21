@@ -59,6 +59,8 @@ class MapFileManager(object):
 
     # WRITE
     def save_map_to_file(self, path, map):
+        
+
         file_handle = open(path, 'w')
 
         # WRITING ALWAYS HEIGHT, THEN WIDTH, SO FILE IS HUMAN-READABLE
@@ -69,6 +71,7 @@ class MapFileManager(object):
             file_handle.write("\n")
         file_handle.close()
     
+    # VIEW AVALIABLE LOAD OPTIONS
     def list_avaliable_files(self): # List the avaliable files
         my_files = [f for f in listdir("maps") if isfile(join("maps", f))]
         return my_files

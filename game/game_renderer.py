@@ -64,6 +64,9 @@ class GameRenderer(object):
         # UI
         # self.render_enemy_list_ui(screen)
         self.render_stats_ui(screen) # RENDER STATS
+
+        # INSTRUCTIONS
+        self.print_instructions(screen)
     
     def render_enemy_list_ui(self, screen): # Whose turn? indicator (unused)
         counter = 0
@@ -89,3 +92,7 @@ class GameRenderer(object):
         color = Color.DEFAULT_COLOR
         screen.print_at("HP | {0}".format(self.game.hero.health), 2, self.game.map.height + 1, color) # HEALTH INDICATOR
         screen.print_at("INVENTORY | {0}".format(self.game.hero.inventory), 2, self.game.map.height + 2, color) # INVENTORY PRINTOUT
+    
+    # Instructions
+    def print_instructions(self, screen):
+        screen.print_at("ARROW KEYS: move, Z: drink potion, X: craft potion, S: save map, Q: quit", 2, self.game.map.height + 10 + 1, Color.DEFAULT_COLOR)

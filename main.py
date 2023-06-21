@@ -16,16 +16,17 @@ from utilities.time_utility import Time
 from utilities.color_utility import Color
 
 from game.game import Game
-from game.tilemap import TileType
+from game.tilemap import TileType, TileMap
 from game.game_renderer import GameRenderer
 from game.map_generator import MapGenerator
 from game.actors.hero import Hero
 from game.actors.enemy import Enemy
-from game.actions.action import MoveAction, HealAction
+from game.actions.action import MoveAction, HealAction, CraftAction
 from game.inventory import ItemType
 
 from level_editor.map_file_manager import MapFileManager
 from level_editor.editor import *
+from level_editor.editor_renderer import EditorRenderer
 
 import game.input.keyboard as Keyboard
 
@@ -36,13 +37,19 @@ import game.input.keyboard as Keyboard
 import traceback
 
 MAP_DIMENSIONS = Vector(80, 24) # Dimensions of the map
-TIME_BETWEEN_PROCESS = 0.05
+TIME_BETWEEN_PROCESS = 0.01
 MAP_FILE_MANAGER = MapFileManager()
 
 TIME = Time()
 
+# Save util function
 def save_game(game):
-    MAP_FILE_MANAGER.save_map_to_file("maps/map-{0}.txt".format(TIME.get_timestamp_string()), game.map)
+    MAP_FILE_MANAGER.save_map_to_file(get_time_file_name(), game.map)
+def save_editor(editor, file_name=""):
+    MAP_FILE_MANAGER.save_map_to_file(file_name, editor.map)
+# Get file name for current time
+def get_time_file_name():
+    return "maps/map-{0}.txt".format(TIME.get_timestamp_string())
 
 
 
@@ -67,6 +74,8 @@ def handle_game_input(game, e):
                 save_game(game)
             case Keyboard.KeyCode.Z: # HEAL
                 game.hero.set_next_action(HealAction(ItemType.POTION))
+            case Keyboard.KeyCode.X: # CRAFT
+                game.hero.set_next_action(CraftAction(ItemType.POTION, ItemType.POTION_MATERIAL, 3))
             case Keyboard.KeyCode.Q: # QUIT
                 return -1
 # MAIN GAME
@@ -97,7 +106,7 @@ def game(screen, preload_map=None):
                     new_player.inventory.add_item(ItemType.POTION, 1)
                     new_player.inventory.add_item(ItemType.POTION_MATERIAL, 2)
                 elif map.is_tile_type(Vector(x,y), TileType.ENEMY_SPAWNER): # SPAWN THE ENEMY AT ENEMY SPAWN POINTS
-                    new_enemy = Enemy(Vector(x,y), "e", Color.RED, 1, 0.5, health=2, game=cur_game)
+                    new_enemy = Enemy(Vector(x,y), "e", Color.RED, 1, 0.5, health=1, game=cur_game)
                     cur_game.add_actor(new_enemy)
                 elif map.is_tile_type(Vector(x,y), TileType.EXIT): # ASSIGN THE EXIT POINT TO BE THE EXIT
                     exit_point = Vector(x,y)
@@ -121,10 +130,13 @@ def game(screen, preload_map=None):
                 process_timer -= TIME_BETWEEN_PROCESS
                 cur_game.process()
 
+            # Game end - VICTORY
             if cur_game.hero.get_position() == exit_point:
                  print("\nYou win!")
+                 print("Your score: {0} coins".format(cur_game.hero.inventory.get_item(ItemType.COIN)))
                  cur_game.stop()
             
+            # End the game if it is stopped
             if not cur_game.is_playing:
                 break
 
@@ -138,65 +150,64 @@ def game(screen, preload_map=None):
 
 
 
-# LEVEL EDITOR BROWSE MENU
-def level_editor_menu():
-    list_of_maps = MAP_FILE_MANAGER.list_avaliable_files() # Get avaliable map paths in /maps
-    while True:
-        print("")
-        print("> LEVEL EDITOR (Enter q to exit)\n")
-        for i in range(len(list_of_maps)): # Show the avaliable maps in print listing
-            print("{0}. {1}".format(i + 1, list_of_maps[i]))
-        if len(list_of_maps) < 1:
-            print("No maps avaliable in maps. (Make one?)")
-        print("")
-
-        p_input = input("> ").strip().lower() # Player input, processed and standardized
-        # INT PROCESSING
-        try:
-            i_input = int(p_input) # int value of the player's input
-            with ManagedScreen() as screen:
-                loaded_map = MAP_FILE_MANAGER.load_map_from_file("maps/" + list_of_maps[i_input - 1])
-                level_editor(screen, loaded_map)
-        except:
-            # STRING PROCESSING
-            match p_input:
-                case "q":
-                    break
-                case "s": # SORTED PRINT
-                    list_of_maps = MAP_FILE_MANAGER.list_sorted_avaliable_files() # Get avaliable map paths in /maps
-                case "l": # NOT SORTED PRINT
-                    list_of_maps = MAP_FILE_MANAGER.list_avaliable_files()
-                case _:
-                    print("\nPlease enter a valid input.")
-
 # LEVEL EDITOR
-def level_editor(screen, preload_map=None):
+def level_editor(screen, preload_map=None, file_name=""):
     try:
-        # Get map
-        map = preload_map
-
         # Create game
-        cur_game = Game(map)
+        cur_editor = LevelEditor(preload_map)
         # Create renderer
-        cur_game_renderer = GameRenderer(cur_game)
+        cur_editor_renderer = EditorRenderer(cur_editor)
 
+        # Cursor
         cursor_position = Vector(0,0)
 
         while True: # GAME LOOP
             # INPUT HANDLING
             e = screen.get_event()
-            # res = handle_input(cur_game, e) # Pass input handling
-            # if res == -1: # Input wants to quit! Quit the game
-            #     break
+            # INPUT HANDLER
+            if e != None and hasattr(e, "key_code"):
+
+                # Tile switcher
+                if e.key_code == ord("1"):
+                    cur_editor.set_selected_tile(TileType.FLOOR)
+                if e.key_code == ord("2"):
+                    cur_editor.set_selected_tile(TileType.WALL)
+                if e.key_code == ord("3"):
+                    cur_editor.set_selected_tile(TileType.ENTRANCE)
+                if e.key_code == ord("4"):
+                    cur_editor.set_selected_tile(TileType.EXIT)
+                if e.key_code == ord("5"):
+                    cur_editor.set_selected_tile(TileType.ENEMY_SPAWNER)
+
+                match e.key_code:
+                    case Keyboard.KeyCode.G:
+                        # Generate a template for this map
+                        cur_map_generator = MapGenerator(MAP_DIMENSIONS)
+                        cur_map_generator.generate_rogue_level(MAP_DIMENSIONS)
+                        cur_editor.map = cur_map_generator.get_new_tilemap()
+                    case Keyboard.KeyCode.P: # PLAY CURRENT
+                        try:
+                            game(screen, cur_editor.map)
+                        except:
+                            print("error")
+                    case Keyboard.KeyCode.S: # SAVE
+                        try:
+                            save_editor(cur_editor, file_name)
+                        except:
+                            print("An error occurred while saving.")
+                    case Keyboard.KeyCode.Q: # QUIT
+                        break
 
             # RENDERING
-            cur_game_renderer.render(screen)
+            cur_editor_renderer.render(screen)
 
             # MOUSE HANDLING
             if type(e) == type(MouseEvent(0,0, None)): # If it is a mouse event
-                if e.x < MAP_DIMENSIONS.x and e.y < MAP_DIMENSIONS.y:
-                    cursor_position = Vector(e.x, e.y)
-            screen.print_at("█", cursor_position.x, cursor_position.y, Color.YELLOW) # Cursor
+                if e.x < MAP_DIMENSIONS.x and e.y < MAP_DIMENSIONS.y: # In map range
+                    cursor_position = Vector(e.x, e.y) # Set the cursor position
+                    if e.buttons == MouseEvent.LEFT_CLICK:
+                        cur_editor.set_tile(cursor_position) # Set tile on click
+            screen.print_at("▄", cursor_position.x, cursor_position.y, Color.YELLOW) # Cursor rendering
             
             screen.refresh()    
     except Exception as e:
@@ -205,6 +216,54 @@ def level_editor(screen, preload_map=None):
         print("> An error occured in the MountainQuest level editor. Exiting to the level browser.")
 
 
+
+# LEVEL EDITOR BROWSE MENU
+level_browser_instructions = """
+[n] - open editor for map
+play [n] - play map
+rename [n] [name] - rename map (no spaces permitted)
+new - create a new empty map
+s - print maps in sorted alphabetical order
+rs - print maps in reverse sorted alphabetical order
+q - quit
+"""
+def level_editor_menu():
+    list_of_maps = MAP_FILE_MANAGER.list_avaliable_files() # Get avaliable map paths in /maps
+    while True:
+        print("")
+        print("> LEVEL EDITOR")
+        print(level_browser_instructions)
+        print("> MAPS")
+
+        for i in range(len(list_of_maps)): # Show the avaliable maps in print listing
+            print("{0}. {1}".format(i + 1, list_of_maps[i]))
+        if len(list_of_maps) < 1:
+            print("No maps avaliable. (Make one?)")
+        print("")
+
+        p_input = input("> ").strip().lower() # Player input, processed and standardized
+        # INT PROCESSING
+        try:
+            i_input = int(p_input) # int value of the player's input
+            with ManagedScreen() as screen:
+                loaded_map = MAP_FILE_MANAGER.load_map_from_file("maps/" + list_of_maps[i_input - 1])
+                level_editor(screen, loaded_map, list_of_maps[i_input - 1])
+        except:
+            # STRING PROCESSING
+            match p_input:
+                case "new":
+                    with ManagedScreen() as screen:
+                        new_map = TileMap(MAP_DIMENSIONS)
+                        new_map.fill(TileType.WALL)
+                        level_editor(screen, new_map, get_time_file_name())
+                case "q":
+                    break
+                case "s": # SORTED PRINT
+                    list_of_maps = MAP_FILE_MANAGER.list_sorted_avaliable_files() # Get avaliable map paths in /maps
+                case "l": # NOT SORTED PRINT
+                    list_of_maps = MAP_FILE_MANAGER.list_avaliable_files()
+                case _:
+                    print("\nPlease enter a valid input.")
 
 # MAIN MENU USING TYPICAL TERMINAL UI
 # Instructions text includes newlines

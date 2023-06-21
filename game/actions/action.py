@@ -92,3 +92,18 @@ class HealAction(ActorAction):
         hasConsumed = actor.inventory.consume_item(self.item_type, 1)
         if hasConsumed: # Item consumed, heal
             actor.heal(2)
+
+# Action to craft a potion
+class CraftAction(ActorAction):
+    def __init__(self, item_type=None, required_item=None, required_amount=3):
+        super().__init__()
+        self.item_type = item_type
+        self.required_item = required_item
+        self.required_amount = required_amount
+    def perform(self, actor=None, game=None):
+        super().perform(actor, game)
+
+        # Craft
+        hasConsumed = actor.inventory.consume_item(self.required_item, self.required_amount)
+        if hasConsumed: # Item consumed, craft
+            actor.inventory.add_item(self.item_type, 1)

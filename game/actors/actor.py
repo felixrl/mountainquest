@@ -11,18 +11,22 @@
 from utilities.math_utility import *
 
 from game.actions.action import *
+from game.inventory import Inventory
 
 from game.game_renderer import Color
 
 class Actor(object):
-    def __init__(self, position=Vector(0, 0), char="#", color=Color.DEFAULT_COLOR, energy=1, energy_gain=1):
+    def __init__(self, position=Vector(0, 0), char="#", color=Color.DEFAULT_COLOR, energy=1, energy_gain=1, health=3):
         self.position = position
         self.char = char
         self.color = color
         self.energy = energy
         self.energy_gain = energy_gain
 
-        self.health = 1
+        self.health = health
+
+        # Setup inventory
+        self.inventory = Inventory()
 
         # Action system
         self.next_action = None
@@ -52,4 +56,17 @@ class Actor(object):
 
     # Collision handler - called when one character attempts to move into another
     def collide(self, other):
+        pass
+
+    # Heal handler - called when a heal action is used
+    def heal(self, amount):
+        self.health += amount
+        self.on_health_changed()
+    # Damage handler - called when one character attacks this one
+    def damage(self, amount):
+        self.health -= amount
+        self.on_health_changed()
+
+    # Handler for on health changed - implement in subclasses
+    def on_health_changed(self):
         pass

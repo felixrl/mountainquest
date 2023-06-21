@@ -15,6 +15,9 @@ import numpy as np
 class TileType(IntEnum):
     FLOOR = 0
     WALL = 1
+    ENTRANCE = 2
+    EXIT = 3
+    ENEMY_SPAWNER = 4
 
 # A map of tiles
 class TileMap:

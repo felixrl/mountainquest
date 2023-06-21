@@ -7,6 +7,7 @@
 # 6.2.2023 - added TIME_BETWEEN_PROCESS, delays turns by a constant value to avoid instantaneous movements
 # 6.9.2023 - added tracebook tracing for on errors
 # 6.12.2023 - added victory condition
+# 6.20.2023 - finished majority rewrite, split entity decision making into TileMap and MapGenerator
 
 from asciimatics.screen import Screen, ManagedScreen
 
@@ -15,10 +16,13 @@ from utilities.time_utility import Time
 from utilities.color_utility import Color
 
 from game.game import Game
+from game.tilemap import TileType
 from game.game_renderer import GameRenderer
 from game.map_generator import MapGenerator
 from game.actors.hero import Hero
-from game.actions.action import MoveAction
+from game.actors.enemy import Enemy
+from game.actions.action import MoveAction, HealAction
+from game.inventory import ItemType
 
 from level_editor.map_file_manager import MapFileManager
 from level_editor.editor import *
@@ -32,7 +36,7 @@ import game.input.keyboard as Keyboard
 import traceback
 
 MAP_DIMENSIONS = Vector(80, 24) # Dimensions of the map
-TIME_BETWEEN_PROCESS = 0.1
+TIME_BETWEEN_PROCESS = 0.05
 MAP_FILE_MANAGER = MapFileManager()
 
 TIME = Time()
@@ -47,7 +51,7 @@ def save_game(game):
 # ---------------------
 
 # INPUT HANDLER
-def handle_input(game, e):
+def handle_game_input(game, e):
     if e != None and hasattr(e, "key_code"):
         match e.key_code:
             # Movement inputs
@@ -57,11 +61,13 @@ def handle_input(game, e):
                 game.hero.set_next_action(MoveAction(Vector(0,1)))
             case Keyboard.KeyCode.LeftArrow:
                 game.hero.set_next_action(MoveAction(Vector(-1,0)))
-            case Keyboard.KeyCode.RightArrow:
+            case Keyboard.KeyCode.RightArrow: 
                 game.hero.set_next_action(MoveAction(Vector(1,0)))
-            case Keyboard.KeyCode.S:
+            case Keyboard.KeyCode.S: # SAVE FILE
                 save_game(game)
-            case Keyboard.KeyCode.Q:
+            case Keyboard.KeyCode.Z: # HEAL
+                game.hero.set_next_action(HealAction(ItemType.POTION))
+            case Keyboard.KeyCode.Q: # QUIT
                 return -1
 # MAIN GAME
 def game(screen, preload_map=None):
@@ -78,20 +84,23 @@ def game(screen, preload_map=None):
         # Create renderer
         cur_game_renderer = GameRenderer(cur_game)
 
-        # Create actors
-        # Create hero
-        new_player = Hero(Vector(5, 5), "@", Color.WHITE, game=cur_game)
-        cur_game.add_actor(new_player)  
-        cur_game.set_hero(new_player)
-        # Create enemies
-        # for i in range(3):
-        #     new_pos = Vector(0,0)
-        #     while True:
-        #         new_pos = Vector(random.randint(0, MAP_DIMENSIONS.x - 1), random.randint(0, MAP_DIMENSIONS.y - 1))
-        #         if cur_game.map.get_tile(new_pos) == TileType.FLOOR:
-        #             break
-        #     new_enemy = Enemy(new_pos, "e", Color.RED, 1, 0.5, cur_game)
-        #     cur_game.add_actor(new_enemy)
+        # Create actors based on map spawners and initalize certain values
+        exit_point = None
+        for x in range(MAP_DIMENSIONS.x):
+            for y in range(MAP_DIMENSIONS.y):
+                if map.is_tile_type(Vector(x,y), TileType.ENTRANCE): # SPAWN THE PLAYER AT THE ENTRANCE
+                    new_player = Hero(Vector(x,y), "@", Color.WHITE, game=cur_game, health=5)
+                    cur_game.add_actor(new_player)  
+                    cur_game.set_hero(new_player)
+
+                    # Spawn with 1 potion, 2 ingredients
+                    new_player.inventory.add_item(ItemType.POTION, 1)
+                    new_player.inventory.add_item(ItemType.POTION_MATERIAL, 2)
+                elif map.is_tile_type(Vector(x,y), TileType.ENEMY_SPAWNER): # SPAWN THE ENEMY AT ENEMY SPAWN POINTS
+                    new_enemy = Enemy(Vector(x,y), "e", Color.RED, 1, 0.5, health=2, game=cur_game)
+                    cur_game.add_actor(new_enemy)
+                elif map.is_tile_type(Vector(x,y), TileType.EXIT): # ASSIGN THE EXIT POINT TO BE THE EXIT
+                    exit_point = Vector(x,y)
 
         # SETUP PROCESS TIMER FOR TURN TICKS
         TIME.reset_delta_time()
@@ -104,7 +113,7 @@ def game(screen, preload_map=None):
 
             # INPUT HANDLING
             e = screen.get_event()
-            res = handle_input(cur_game, e) # Pass input handling
+            res = handle_game_input(cur_game, e) # Pass input handling
             if res == -1: # Input wants to quit! Quit the game
                 break
 
@@ -112,9 +121,9 @@ def game(screen, preload_map=None):
                 process_timer -= TIME_BETWEEN_PROCESS
                 cur_game.process()
 
-            # if map.get_tile(cur_game.hero.get_position()) == EXIT: # THE PLAYER IS STANDING ON THE EXIT
-            #     print("\nYou win!")
-            #     cur_game.stop()
+            if cur_game.hero.get_position() == exit_point:
+                 print("\nYou win!")
+                 cur_game.stop()
             
             if not cur_game.is_playing:
                 break

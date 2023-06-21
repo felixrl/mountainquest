@@ -5,12 +5,13 @@
 
 # Version History
 # 6.2.2023 - created file and moved enemy subclass
+# 6.20.2023 - added health change handler
 
 from game.actors.actor import *
 
 class Enemy(Actor):
-    def __init__(self, position=Vector(0,0), char="e", color=Color.DEFAULT_COLOR, energy=1, energy_gain=1, game=None):
-        super().__init__(position, char, color, energy, energy_gain)
+    def __init__(self, position=Vector(0,0), char="e", color=Color.DEFAULT_COLOR, energy=1, energy_gain=1, health=3, game=None):
+        super().__init__(position, char, color, energy, energy_gain, health)
         self.game = game
     def get_action(self):
         y_distance = self.game.hero.position.y - self.position.y
@@ -37,3 +38,9 @@ class Enemy(Actor):
     # Collision handler - override
     def collide(self, other):
         super().collide(other)
+    
+    # Health handler - override
+    def on_health_changed(self):
+        super().on_health_changed()
+        if self.health <= 0:
+            self.game.remove_actor(self)

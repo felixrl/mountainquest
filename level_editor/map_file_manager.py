@@ -15,7 +15,7 @@ from game.tilemap import *
 from os import listdir
 from os.path import isfile, join
 
-OBJECT_TYPES = { 0: "0", 1: "1" }
+OBJECT_TYPES = { TileType.FLOOR: "0", TileType.WALL: "1", TileType.ENTRANCE: "2", TileType.EXIT: "3", TileType.ENEMY_SPAWNER: "4" }
 
 # When saving maps, objects are encoded into a text character and saved in-line on its appropriate row
 # Every line is written, then a newline is created and the next row is parsed
@@ -61,7 +61,6 @@ class MapFileManager(object):
     def save_map_to_file(self, path, map):
         file_handle = open(path, 'w')
 
-        # data
         # WRITING ALWAYS HEIGHT, THEN WIDTH, SO FILE IS HUMAN-READABLE
         for y in range(map.height):
             for x in range(map.width):

@@ -9,6 +9,7 @@
 # 6.8.2023, 6.9.2023 - Added rogue tunneling functionality
 # 6.12.2023 - Added entrance tile and exit tile
 # 6.19.2023 - Integrated new TileMap implementation
+# 6.20.2023 - Integrated entity generation into map
 
 from utilities.math_utility import *
 
@@ -67,22 +68,11 @@ class RoomGrid:
 # Generates all level data, including entities, rooms, and tilemap
 class MapGenerator(object):
     def __init__(self, dimensions=Vector(32, 32)):
-        self.create_new_entities()
         self.create_new_tilemap(dimensions) # Create a new empty tilemap
-
-    # ENTITIES
-    def get_new_entites(self):
-        return self.new_entities
-    def create_new_entities(self):
-        self.new_entities = []
 
     # TILEMAP
     def get_new_tilemap(self):
         return self.new_tilemap
-    def get_start_point(self):
-        return self.start
-    def get_end_point(self):
-        return self.end
     
     def create_new_tilemap(self, dimensions=Vector(32, 32)):
         self.new_tilemap = TileMap(dimensions) # New tilemap
@@ -133,26 +123,36 @@ class MapGenerator(object):
         # DETERMINE THE PRIME PATH USING A RECUSRIVE ALGORITHM, A LIST OF ROOMS TO FOLLOW TO THE EXIT
         points = self.determine_prime_path(Vector(0, 0), [])
 
-        # Modify individual rooms
-
         # ROOM #1 - ENTRANCE
         entrance_room = self.room_grid.get_room(points[0])
-        entrance = Vector((entrance_room.pivot.x + entrance_room.dimensions.x // 2), (entrance_room.pivot.y + entrance_room.dimensions.y // 2))
-        self.start = entrance # Set the start position to the center of the entrance room
+        entrance_room.tilemap.set_tile(Vector(entrance_room.dimensions.x//2, entrance_room.dimensions.y//2), TileType.ENTRANCE)
 
         # LAST ROOM - EXIT
         exit_room = self.room_grid.get_room(points[len(points) - 1])
-        exit = Vector((exit_room.pivot.x + exit_room.dimensions.x // 2), (exit_room.pivot.y + exit_room.dimensions.y // 2))
-        self.end = exit
+        exit_room.tilemap.set_tile(Vector(exit_room.dimensions.x//2, exit_room.dimensions.y//2), TileType.EXIT)
 
-        # Apply rooms
-        for p in points:
-            self.apply_room(self.room_grid.get_room(p))
+        # IN-BETWEENS
+
+        for pi in range(1, len(points) - 1): # in range of index from second room to last room
+            cur_room = self.room_grid.get_room(points[pi])
+            room_type = random.randint(0, 2)
+            match room_type:
+                case 0: # Enemy center
+                    cur_room.tilemap.set_tile(Vector(cur_room.dimensions.x//2, cur_room.dimensions.y//2), TileType.ENEMY_SPAWNER)
+                case 1: # Two halves
+                    cur_room.tilemap.set_tile(Vector(cur_room.dimensions.x//2 + cur_room.dimensions.x//4, cur_room.dimensions.y//2), TileType.ENEMY_SPAWNER)
+                    cur_room.tilemap.set_tile(Vector(cur_room.dimensions.x//2 - cur_room.dimensions.x//4, cur_room.dimensions.y//2), TileType.ENEMY_SPAWNER)
+                case _:
+                    pass
 
         # Determine room connections, tunnel
         for i in range(len(points)):
             if (i+1) in range(len(points)):
                 self.tunnel_between_rogue_rooms(self.room_grid.point_to_scalar_index(points[i]), self.room_grid.point_to_scalar_index(points[i+1]))
+
+        # Apply rooms
+        for p in points:
+            self.apply_room(self.room_grid.get_room(p))
 
     def tunnel_between_rogue_rooms(self, ri1, ri2):
         if ri1 > ri2: # Swap indices if ri1 is greater, we need to always go right or down
@@ -261,7 +261,7 @@ class MapGenerator(object):
         for x in range(room.dimensions.x):
             for y in range(room.dimensions.y):
                 offset = Vector(x, y)
-                self.new_tilemap.set_tile(room.pivot + offset, TileType.FLOOR)
+                self.new_tilemap.set_tile(room.pivot + offset, room.tilemap.get_tile(offset))
 
     # GENERATE A MAP CONTAINING DISTANCES FROM A CHOSEN "SPAWN POINT"
     def generate_distance_map(self, start=Vector(0,0)):

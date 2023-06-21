@@ -95,4 +95,9 @@ class GameRenderer(object):
     
     # Instructions
     def print_instructions(self, screen):
+        # FILLING A BACKGROUND TO PREVENT ISSUE WHEN SWAPPING BETWEEN GAME AND EDITOR
+        bg_string = ""
+        for i in range(self.game.map.width):
+            bg_string = bg_string + "-"
+        screen.print_at(bg_string, 0, self.game.map.height + 10 + 1, Color.DEFAULT_COLOR)
         screen.print_at("ARROW KEYS: move, Z: drink potion, X: craft potion, S: save map, Q: quit", 2, self.game.map.height + 10 + 1, Color.DEFAULT_COLOR)

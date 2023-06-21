@@ -38,7 +38,9 @@ class Inventory(object):
 
     # GET ITEM AMOUNT
     def get_item(self, item_type):
-        return self.items[item_type]
+        if item_type in self.items: # Item inside inventory
+            return self.items[item_type] 
+        return 0 # None, return 0
 
     # CONSUME ITEM IF POSSIBLE, ELSE RETURN FALSE
     def consume_item(self, item_type, amount):

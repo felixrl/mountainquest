@@ -12,7 +12,7 @@ from utilities.sort_utility import *
 
 from game.tilemap import *
 
-from os import listdir
+from os import listdir, remove, rename
 from os.path import isfile, join
 
 OBJECT_TYPES = { TileType.FLOOR: "0", TileType.WALL: "1", TileType.ENTRANCE: "2", TileType.EXIT: "3", TileType.ENEMY_SPAWNER: "4" }
@@ -71,6 +71,14 @@ class MapFileManager(object):
             file_handle.write("\n")
         file_handle.close()
     
+    # DELETE
+    def delete_map(self, path):
+        remove(path)
+
+    # RENAME
+    def rename_map(self, path, new_path):
+        rename(path, new_path)
+
     # VIEW AVALIABLE LOAD OPTIONS
     def list_avaliable_files(self): # List the avaliable files
         my_files = [f for f in listdir("maps") if isfile(join("maps", f))]

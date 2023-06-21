@@ -30,6 +30,8 @@ from level_editor.editor_renderer import EditorRenderer
 
 import game.input.keyboard as Keyboard
 
+from enum import IntEnum
+
 
 
 # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
@@ -44,12 +46,12 @@ TIME = Time()
 
 # Save util function
 def save_game(game):
-    MAP_FILE_MANAGER.save_map_to_file(get_time_file_name(), game.map)
+    MAP_FILE_MANAGER.save_map_to_file("maps/" + get_time_file_name(), game.map)
 def save_editor(editor, file_name=""):
     MAP_FILE_MANAGER.save_map_to_file(file_name, editor.map)
 # Get file name for current time
 def get_time_file_name():
-    return "maps/map-{0}.txt".format(TIME.get_timestamp_string())
+    return "map-{0}.txt".format(TIME.get_timestamp_string())
 
 
 
@@ -110,6 +112,15 @@ def game(screen, preload_map=None):
                     cur_game.add_actor(new_enemy)
                 elif map.is_tile_type(Vector(x,y), TileType.EXIT): # ASSIGN THE EXIT POINT TO BE THE EXIT
                     exit_point = Vector(x,y)
+        
+        # CHECK IF A PLAYER ACTUALLY EXISTS
+        if cur_game.hero == None:
+            print("> Game cannot start without player.")
+            return
+        # CHECK IF AN EXIT ACTUALLY EXISTS
+        if type(exit_point) != type(Vector()):
+            print("> Game cannot start without exit.")
+            return
 
         # SETUP PROCESS TIMER FOR TURN TICKS
         TIME.reset_delta_time()
@@ -192,7 +203,7 @@ def level_editor(screen, preload_map=None, file_name=""):
                             print("error")
                     case Keyboard.KeyCode.S: # SAVE
                         try:
-                            save_editor(cur_editor, file_name)
+                            save_editor(cur_editor, "maps/" + file_name)
                         except:
                             print("An error occurred while saving.")
                     case Keyboard.KeyCode.Q: # QUIT
@@ -205,8 +216,16 @@ def level_editor(screen, preload_map=None, file_name=""):
             if type(e) == type(MouseEvent(0,0, None)): # If it is a mouse event
                 if e.x < MAP_DIMENSIONS.x and e.y < MAP_DIMENSIONS.y: # In map range
                     cursor_position = Vector(e.x, e.y) # Set the cursor position
-                    if e.buttons == MouseEvent.LEFT_CLICK:
+                    if e.buttons == MouseEvent.LEFT_CLICK: # PLACE
                         cur_editor.set_tile(cursor_position) # Set tile on click
+                    elif e.buttons == MouseEvent.RIGHT_CLICK: # REMOVE
+                        match cur_editor.get_tile(cursor_position):
+                            case TileType.FLOOR:
+                                cur_editor.map.set_tile(cursor_position, TileType.WALL)
+                            case TileType.ENEMY_SPAWNER:
+                                cur_editor.map.set_tile(cursor_position, TileType.FLOOR)
+                            case _:
+                                pass
             screen.print_at("▄", cursor_position.x, cursor_position.y, Color.YELLOW) # Cursor rendering
             
             screen.refresh()    
@@ -222,14 +241,29 @@ level_browser_instructions = """
 [n] - open editor for map
 play [n] - play map
 rename [n] [name] - rename map (no spaces permitted)
+delete [n] - delete map
 new - create a new empty map
 s - print maps in sorted alphabetical order
 rs - print maps in reverse sorted alphabetical order
+l - print maps in default file order
 q - quit
 """
+
+class BrowserState(IntEnum):
+    DEFAULT = 0
+    SORTED = 1
+    REVERSE = 2
+
 def level_editor_menu():
-    list_of_maps = MAP_FILE_MANAGER.list_avaliable_files() # Get avaliable map paths in /maps
+    level_state = BrowserState.DEFAULT
     while True:
+        list_of_maps = MAP_FILE_MANAGER.list_avaliable_files() # Get avaliable map paths in /maps
+        if level_state == BrowserState.SORTED:
+            list_of_maps = MAP_FILE_MANAGER.list_sorted_avaliable_files()
+        elif level_state == BrowserState.REVERSE:
+            list_of_maps = MAP_FILE_MANAGER.list_sorted_avaliable_files()
+            list_of_maps.reverse()
+            
         print("")
         print("> LEVEL EDITOR")
         print(level_browser_instructions)
@@ -245,23 +279,43 @@ def level_editor_menu():
         # INT PROCESSING
         try:
             i_input = int(p_input) # int value of the player's input
-            with ManagedScreen() as screen:
+            with ManagedScreen() as screen: # EDIT FILE
                 loaded_map = MAP_FILE_MANAGER.load_map_from_file("maps/" + list_of_maps[i_input - 1])
                 level_editor(screen, loaded_map, list_of_maps[i_input - 1])
         except:
             # STRING PROCESSING
-            match p_input:
-                case "new":
+            args = p_input.split(" ")
+            cmd = args.pop(0)
+            match cmd:
+                case "new": # NEW FILE
                     with ManagedScreen() as screen:
                         new_map = TileMap(MAP_DIMENSIONS)
                         new_map.fill(TileType.WALL)
                         level_editor(screen, new_map, get_time_file_name())
+                case "play": # PLAY FILE
+                    num_arg = int(args[0])
+                    with ManagedScreen() as screen:
+                        loaded_map = MAP_FILE_MANAGER.load_map_from_file("maps/" + list_of_maps[num_arg - 1])
+                        game(screen, loaded_map)
+                case "delete": # DELETE FILE
+                    num_arg = int(args[0])
+                    MAP_FILE_MANAGER.delete_map("maps/" + list_of_maps[num_arg - 1])
+                case "rename": # Rename file
+                    try:
+                        num_arg = int(args[0])
+                        new_name = args[1]
+                    
+                        MAP_FILE_MANAGER.rename_map("maps/" + list_of_maps[num_arg -1], "maps/{0}.txt".format(new_name))
+                    except:
+                        print("\n> Rename failed. Please enter a valid name.")
                 case "q":
                     break
                 case "s": # SORTED PRINT
-                    list_of_maps = MAP_FILE_MANAGER.list_sorted_avaliable_files() # Get avaliable map paths in /maps
+                    level_state = BrowserState.SORTED
+                case "rs": # REVERSE SORT
+                    level_state = BrowserState.REVERSE
                 case "l": # NOT SORTED PRINT
-                    list_of_maps = MAP_FILE_MANAGER.list_avaliable_files()
+                    level_state = BrowserState.DEFAULT
                 case _:
                     print("\nPlease enter a valid input.")
 
@@ -311,6 +365,8 @@ def main():
     print("> MountainQuest")
     print("> (a turn-based ASCII roguelike)")
     print("> © 2023 felixrl")
+    print("")
+    print("MAKE SURE TO FULLSCREEN THE TERMINAL WINDOW")
     main_menu() # Start at main menu
     print("")
     print("> Done!") # Game finished

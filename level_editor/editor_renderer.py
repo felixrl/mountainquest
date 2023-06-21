@@ -9,6 +9,7 @@
 from utilities.math_utility import *
 from utilities.color_utility import Color
 
+from level_editor.editor import TileNames
 from game.tilemap import *
 
 class EditorRenderer(object):
@@ -63,8 +64,14 @@ class EditorRenderer(object):
     
     def render_stats_ui(self, screen): # Selection indicator
         color = Color.DEFAULT_COLOR
-        screen.print_at("SELECTED TILE | {0}".format(self.editor.selected_tile_type), 2, self.editor.map.height + 1, color)
+        screen.print_at("SELECTED TILE | {0}".format(TileNames[self.editor.selected_tile_type]), 2, self.editor.map.height + 1, color)
 
     # Instruction printing, keys avaliable
     def print_instructions(self, screen):
-        screen.print_at("Q: quit, G: generate a random rogue map, 1-5: select tile type", 2, self.editor.map.height + 10 + 1, Color.DEFAULT_COLOR)
+        # FILLING A BACKGROUND TO PREVENT ISSUE WHEN SWAPPING BETWEEN GAME AND EDITOR
+        bg_string = ""
+        for i in range(self.editor.map.width):
+            bg_string = bg_string + "-"
+        screen.print_at(bg_string, 0, self.editor.map.height + 10 + 1, Color.DEFAULT_COLOR)
+        
+        screen.print_at("LMB: place, RMB: delete, MOUSE: point, Q: quit, G: random map, 1-5: tile type", 2, self.editor.map.height + 10 + 1, Color.DEFAULT_COLOR)
